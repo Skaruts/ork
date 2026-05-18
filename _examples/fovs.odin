@@ -21,40 +21,19 @@ import ork "../"  // Ork itself
 
 
 
-
-UI_TEXT_SELECTED_COL :: ork.AMBER5
-
-
-_draw_option_group :: proc(x, y: int, name: string, options: []string, selected_idx: int) -> int {
-	y := y
-
-	if name != "" {
-		ork.draw_text(ui_console, x+1, y, name, UI_HEADER_COL, ork.BLACK)
-		y += 2
-	}
-
-	for opt_name, i in options {
-		if i != selected_idx {
-			ork.draw_text(ui_console, x+3, y+i, opt_name, UI_TEXT_FADED_COL, ork.BLACK)
-		} else {
-			ork.draw_cell(ui_console, x+1, y+i, ork.Index(16), UI_TEXT_SELECTED_COL, ork.BLACK)
-			ork.draw_text(ui_console, x+3, y+i, opt_name, UI_TEXT_SELECTED_COL, ork.BLACK)
-		}
-	}
-
-	y += 2 + len(options)
-
-	return y+2
-}
-
-
 _draw_ui :: proc() {
-	x, y := 0, 25
-	ork.draw_line(ui_console, x, y, UI_WIDTH-1, y, LINE_H, ork.GRAY1)
+	x, y := 1, ui_y
+	ui_separator_h(x, y, UI_WIDTH-3)
 
-	y += 2
-	y = _draw_option_group(x, y, "FOV (home/end)", fov_names[:], int(curr_fov))
-	y = _draw_option_group(x, y, "Vis (ins/del)", {fmt.tprintf("radius: %d", fov_radius)}, 0)
+	ui_header(x, y+2, "FOV")
+	ui_text(x+4, y+2, "(home/end)", UI_TEXT_PARENTESES)
+	ui_selector(x, y+4, int(curr_fov), fov_names[:])
+
+	y += 9
+	ui_header(x, y, "Vis")
+	ui_text(x+4, y, "(ins/del)", UI_TEXT_PARENTESES)
+	ui_text(x+1, y+2, "radius:", UI_TEXT_COL)
+	ui_text(x+9, y+2, fmt.tprintf("%d", fov_radius), UI_DIGIT)
 }
 
 
@@ -88,13 +67,6 @@ paint_cell :: proc(tile_type: TileType) {
 }
 
 
-// _switch_gen :: proc() {
-// 	curr_gen = (curr_gen+1) % 4
-// 	init_map()
-// 	init_fov()
-// 	should_redraw = true
-// }
-
 _restart_map :: proc() {
 	for j in 0 ..< gmap.h {
 		for i in 0 ..< gmap.w {
@@ -113,7 +85,6 @@ fovs_example_init :: proc() {
 
 	init_map(GW, GH, &gmap, &player)  // the fov is initialized in 'init_map'
 }
-
 
 
 fovs_example_quit :: proc() {

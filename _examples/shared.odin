@@ -14,13 +14,6 @@ GH :: MAIN_GH
 LINE_H :: ork.Index(196)  // Assuming cp437 is being used.
 LINE_V :: ork.Index(179)  // Index needs to be typed, or the drawing procs will take it as a rune.
 
-UI_SEP_COL            :: ork.GRAY1
-UI_HEADER_COL         :: ork.GREEN4
-UI_TEXT_COL           :: ork.GRAY6
-UI_TEXT_FADED_COL     :: ork.GRAY4
-UI_SELECTED_COL       :: ork.BLUE3
-UI_SELECTED_FADED_COL :: ork.GRAY2
-
 
 TileType :: enum { Floor, Wall, Water }
 
@@ -229,5 +222,67 @@ draw_tiles_fov_cam :: proc(console: ^ork.Console, gmap: ^GameMap, cam: ^ork.Came
 			// 	ork.draw_cell(console, i, j, nil, ork.BLACK, ork.BLACK)
 			}
 		}
+	}
+}
+
+
+/********************************************
+	Some UI helpers
+*/
+
+UI_SEP_COL            :: ork.GRAY1
+UI_HEADER_COL         :: ork.GREEN4
+UI_TEXT_COL           :: ork.GRAY6
+UI_TEXT_FADED_COL     :: ork.GRAY4
+UI_SELECTED_COL       :: ork.BLUE3
+UI_SELECTED_FADED_COL :: ork.GRAY2
+UI_DIGIT              :: ork.Color{150, 0, 255, 255}
+UI_TEXT_SELECTED_COL  :: ork.AMBER5
+UI_TEXT_PARENTESES    :: ork.GRAY1
+
+ui_y := 1
+
+
+ui_text :: proc(x, y: int, text: string, fg: ork.Color, bg: Maybe(ork.Color)=nil) {
+	ork.draw_text(ui_console, x, y, text, fg, bg)
+}
+
+ui_header :: proc(x, y: int, text: string) {
+	ork.draw_text(ui_console, x, y, text, UI_HEADER_COL)
+}
+
+ui_separator_v :: proc(x, y, length: int) {
+	ork.draw_line(ui_console, x, y, x, y+length, LINE_V, UI_SEP_COL)
+}
+
+ui_separator_h :: proc(x, y, length: int) {
+	ork.draw_line(ui_console, x, y, x+length, y, LINE_H, UI_SEP_COL)
+}
+
+
+ui_list :: proc(x, y, w, selected: int, items: []string, active: bool) {
+	for text, i in items {
+		fg := i == selected ? UI_TEXT_COL : UI_TEXT_FADED_COL
+		bg := active \
+			? i == selected ? UI_SELECTED_COL       : ork.BLACK \
+			: i == selected ? UI_SELECTED_FADED_COL : ork.BLACK
+
+		yi := y+i
+		ork.draw_line(ui_console, x, yi, w, yi, nil, nil, bg)
+		ork.draw_text(ui_console, x+1, yi, text, fg)
+	}
+}
+
+
+ui_selector :: proc(x, y, selected_idx: int, options: []string) {
+	for opt_name, i in options {
+		fg := UI_TEXT_FADED_COL
+
+		if i == selected_idx {
+			fg = UI_TEXT_SELECTED_COL
+			ork.draw_cell(ui_console, x, y+i, ork.Index(16), UI_TEXT_SELECTED_COL, ork.BLACK)
+		}
+
+		ork.draw_text(ui_console, x+2, y+i, opt_name, fg, ork.BLACK)
 	}
 }

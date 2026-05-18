@@ -113,7 +113,6 @@ tick_example :: proc() {
 	if !in_menu {
 		if ork.key_pressed({.Escape}) {
 			in_menu = true
-			ork.print("back to menu")
 		}
 	}
 
@@ -128,7 +127,6 @@ tick_example :: proc() {
 tick_menu :: proc() {
 	if in_menu {
 		if ork.key_pressed({.Escape}) {
-			ork.print("exiting")
 			ork.exit()
 		}
 		if ork.key_pressed({.Enter}) {
@@ -148,27 +146,25 @@ tick_menu :: proc() {
 	ork.set_clipping_area(ui_console, ork.Rect{0, 0, UI_WIDTH+1, MAIN_GH})
 	{
 		ork.clear_cells(ui_console)
+		ui_separator_v(UI_WIDTH, 1, MAIN_GH-2)
 
-		ork.draw_text(ui_console, 1, 1, "Examples", UI_HEADER_COL )
+		ui_y = 1
+		y := ui_y
+		ui_header(1, y, "Examples")
+		ui_text(1, y+1, "(Enter/Escape)", UI_TEXT_PARENTESES)
+		ui_list(2, y+3, 12, curr_example, keys, in_menu)
 
-		for i in 0 ..< len(keys) {
-			text := keys[i]
-			fg := i == curr_example ? UI_TEXT_COL : UI_TEXT_FADED_COL
-			bg := in_menu \
-				? i == curr_example ? UI_SELECTED_COL       : ork.BLACK \
-				: i == curr_example ? UI_SELECTED_FADED_COL : ork.BLACK
+		y += len(keys)+4
 
-			y := 3+i
-			ork.draw_line(ui_console, 2, y, 12, y, nil, nil, bg)
-			ork.draw_text(ui_console, 3, y, text, fg)
-		}
+		ui_separator_h(1, y+1, UI_WIDTH-3)
 
-		ork.draw_line(ui_console, 1, 14, UI_WIDTH-2, 14, LINE_H, UI_SEP_COL)
+		y += 3
+		ui_header(1, y, "Font")
+		ui_text(1, y+1, "(pg_up/dn ,/.)", UI_TEXT_PARENTESES)
+		ui_text(2, y+3, fonts[curr_font].name, UI_TEXT_COL)
 
-		ork.draw_text(ui_console, 1, 15, "font", UI_HEADER_COL )
-		ork.draw_text(ui_console, 2, 17, fonts[curr_font].name, UI_TEXT_COL )
-
-		ork.draw_line(ui_console, UI_WIDTH, 1, UI_WIDTH, MAIN_GH-2, LINE_V, UI_SEP_COL)
+		ui_y = y+6
 	}
 	ork.set_clipping_area(ui_console, nil)
 }
+
