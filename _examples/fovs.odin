@@ -21,7 +21,7 @@ import ork "../"  // Ork itself
 
 
 
-_draw_ui :: proc() {
+@(private="file") _draw_ui :: proc() {
 	x, y := 1, ui_y
 	ui_separator_h(x, y, UI_WIDTH-3)
 

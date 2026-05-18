@@ -112,6 +112,17 @@ _recompute_dijkstra :: proc() {
 }
 
 
+@(private="file") _draw_ui :: proc() {
+	x, y := 1, ui_y
+	ui_separator_h(x, y, UI_WIDTH-3)
+
+	ui_header(x, y+2, "Dijkstra")
+	ui_text(x+1, y+4, "N1: heat map", UI_TEXT_COL)
+	ui_text(x+1, y+5, "N2: distances", UI_TEXT_COL)
+	ui_text(x+1, y+6, "N3: path", UI_TEXT_COL)
+}
+
+
 dij_example_init :: proc() {
 	init_map(GW, GH, &gmap, &player)
 	init_enemy(&enemy, &gmap)
@@ -213,6 +224,7 @@ dij_example_update :: proc() {
 
 
 dij_example_render :: proc() {
+	_draw_ui()
 	ork.render(ex_console)
 
 	// ork.set_window_title(fmt.tprintf("%s - %d fps", title, ork.get_fps_smoothed()))
