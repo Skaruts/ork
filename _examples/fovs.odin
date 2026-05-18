@@ -121,16 +121,19 @@ _handle_input :: proc() {
 
 
 fovs_example_update :: proc() {
-	_handle_input()
 
-	dir := ork.Vec2{}
-	if ork.action_repeat("move_left")  do dir.x -= 1
-	if ork.action_repeat("move_right") do dir.x += 1
-	if ork.action_repeat("move_up")    do dir.y -= 1
-	if ork.action_repeat("move_down")  do dir.y += 1
+	if !in_menu {
+		_handle_input()
 
-	if dir != ork.VEC2_ZERO {
-		player_moved = try_move(gmap, &player, dir.x, dir.y)
+		dir := ork.Vec2{}
+		if ork.action_repeat("move_left")  do dir.x -= 1
+		if ork.action_repeat("move_right") do dir.x += 1
+		if ork.action_repeat("move_up")    do dir.y -= 1
+		if ork.action_repeat("move_down")  do dir.y += 1
+
+		if dir != ork.VEC2_ZERO {
+			player_moved = try_move(gmap, &player, dir.x, dir.y)
+		}
 	}
 
 	if !player_moved && !should_redraw do return

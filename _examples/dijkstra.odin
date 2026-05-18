@@ -141,14 +141,16 @@ dij_example_init :: proc() {
 
 
 dij_example_update :: proc() {
-	dir := ork.VEC2_ZERO
-	if ork.action_repeat("move_left")  do dir.x -= 1
-	if ork.action_repeat("move_right") do dir.x += 1
-	if ork.action_repeat("move_up")    do dir.y -= 1
-	if ork.action_repeat("move_down")  do dir.y += 1
+	if !in_menu {
+		dir := ork.VEC2_ZERO
+		if ork.action_repeat("move_left")  do dir.x -= 1
+		if ork.action_repeat("move_right") do dir.x += 1
+		if ork.action_repeat("move_up")    do dir.y -= 1
+		if ork.action_repeat("move_down")  do dir.y += 1
 
-	if dir != ork.VEC2_ZERO {
-	 	player_moved = try_move(gmap, &player, dir.x, dir.y)
+		if dir != ork.VEC2_ZERO {
+		 	player_moved = try_move(gmap, &player, dir.x, dir.y)
+		}
 	}
 
 	if ork.key_pressed({.N1}) {

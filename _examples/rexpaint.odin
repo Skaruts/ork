@@ -82,14 +82,16 @@ rexpaint_example_init :: proc() {
 }
 
 rexpaint_example_update :: proc() {
-	dir := ork.Vec2{}
-	if ork.action_repeat("move_left")  do dir.x -= 1
-	if ork.action_repeat("move_right") do dir.x += 1
-	if ork.action_repeat("move_up")    do dir.y -= 1
-	if ork.action_repeat("move_down")  do dir.y += 1
+	if !in_menu {
+		dir := ork.Vec2{}
+		if ork.action_repeat("move_left")  do dir.x -= 1
+		if ork.action_repeat("move_right") do dir.x += 1
+		if ork.action_repeat("move_up")    do dir.y -= 1
+		if ork.action_repeat("move_down")  do dir.y += 1
 
-	if dir != ork.VEC2_ZERO {
-	 	player_moved = try_move(gmap, &player, dir.x, dir.y)
+		if dir != ork.VEC2_ZERO {
+		 	player_moved = try_move(gmap, &player, dir.x, dir.y)
+		}
 	}
 
 	if !player_moved && !should_redraw do return
