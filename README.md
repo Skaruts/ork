@@ -1,6 +1,6 @@
 # Ork Roguelike Kit
 
-A framework for developing text-based roguelikes in the Odin programming language. It aims to provide consoles for rendering text, FOV algorithms, and more.
+A framework for developing text-based roguelikes in [Odin](https://odin-lang.org/). It provides consoles for rendering text, FOV algorithms, and more.
 
 TODO!
 
