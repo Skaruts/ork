@@ -1,10 +1,17 @@
 # Ork Roguelike Kit
 
-A framework for developing text-based roguelikes in the Odin programming language.
+A framework for developing text-based roguelikes in the Odin programming language. It aims to provide consoles for rendering text, FOV algorithms, and more.
 
 TODO!
 
-## Minimal Example
+
+## Usage
+
+Ork aims to remove most boilerplate code needed to start a project, and to keep track of its own memory allocations, so it can clean up after itself.
+
+It takes some inspiration from fantasy consoles. You define three callbacks for your game, and Ork will take care of the rest.
+
+This is how a bare-bones Ork project looks like:
 
 ```odin
 package main
@@ -14,25 +21,32 @@ import "ork"
 console: ^ork.Console
 
 main :: proc() {
-	// Pass your callbacks to `ork.start`
+	// Pass your callbacks to `ork.start()`
 	ork.start(init, tick, quit)
 }
 
 // Define your callbacks
 
 init :: proc() {
-	// Ork sets the window size based on the first console that is created.
+	// This is where you can initialize your game. It's important that
+	// you create at least one console during this phase, as Ork sets
+	// the window size based on the first console that is created.
+
 	font := ork.new_font("my_font")
 	console = ork.new_console(80, 45, font)
 }
 
 tick :: proc() {
+	// This is where you update your game and render your consoles.
 	ork.draw_cell(console, 10, 10, '@', ork.BLUE6)
 	ork.render(console)
 }
 
-// The `quit` callback is optional (you can pass `nil` to `ork.start` in its place).
-quit :: proc() {}
+quit :: proc() {
+	// You can use `quit` to close things up, free memory allocations, etc.
+
+	// The `quit` callback is optional. You can pass `nil` to `ork.start` in its place, if you don't need it.
+}
 ```
 
 ## Building The Examples
@@ -42,6 +56,8 @@ The `build.py` script should make it easy to build and run the examples inside t
 Running it without arguments runs the last compiled executable.
 
 The executable is generated inside `"_examples/bin"`, which already contains some fonts and images used by the examples.
+
+
 
 ## Attribution
 
