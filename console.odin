@@ -80,7 +80,6 @@ Console :: struct {
 	_main_rtex      : k2.Render_Texture,
 }
 
-
 // Creates a new console of `w` width and `h` height, with `font` font.
 // Cell size overrides can be passed to `cw_ovr` and `ch_ovr`.
 new_console :: proc(#any_int w, h: int, font: ^Font = nil,
@@ -118,7 +117,10 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	c._allocator = virtual.arena_allocator(&c._arena)
 	c._rend_allocator = virtual.arena_allocator(&c._rend_arena)
 
-	// TODO ensure w/h > 0
+	if w == 0 || h == 0 {
+		fmt.panic("console dimensions cannot be zero", loc=loc)
+	}
+
 	c.w = w
 	c.h = h
 	c.tint = WHITE
