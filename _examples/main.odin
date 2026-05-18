@@ -42,7 +42,8 @@ main :: proc() {
 init :: proc() {
 	ork.set_panic_key(.None)
 
-	// you can use the same key on multiple actions, for example: diagonal movement with keypad keys
+	// you can use the same key on multiple actions,
+	// for example: diagonal movement with numpad keys
 	ork.add_binds( "move_left",  { .A, .Left,  .NP_4, .NP_7, .NP_1 } )
 	ork.add_binds( "move_right", { .D, .Right, .NP_6, .NP_9, .NP_3 } )
 	ork.add_binds( "move_up",    { .W, .Up,    .NP_8, .NP_7, .NP_9 } )
@@ -51,8 +52,8 @@ init :: proc() {
 	ork.add_binds("prev_font", { .Comma,  .Page_Up })
 	ork.add_binds("next_font", { .Period, .Page_Down })
 
-	// The first parameter to new_font (`name`) can be ommited if not needed.
-	// In this case I give them names so I can show them on the screen.
+	// The first parameter to `new_font` (`name`) can be ommited when not needed.
+	// In this case I give them names so I can display them in the UI.
 	fonts = {
 		ork.new_font("cp437_8x8",   "assets/fonts/cp437_8x8.png"),
 		ork.new_font("cp437_12x12", "assets/fonts/cp437_12x12.png"),
