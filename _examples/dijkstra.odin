@@ -124,6 +124,8 @@ _recompute_dijkstra :: proc() {
 
 
 dij_example_init :: proc() {
+	gmap.map_type = MapType.Caves
+
 	init_map(GW, GH, &gmap, &player)
 	init_enemy(&enemy, &gmap)
 

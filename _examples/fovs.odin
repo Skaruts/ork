@@ -79,6 +79,8 @@ _restart_map :: proc() {
 
 
 fovs_example_init :: proc() {
+	gmap.map_type = MapType.Dungeon
+
 	for type, i in ork.FovType {
 		fov_names[i] = fmt.aprintf("%s", type)
 	}

@@ -111,7 +111,6 @@ init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 	delete(gmap.tiles)
 	ork.delete_mapgen(gmap.mapgen)
 
-	gmap.map_type = MapType.Dungeon
 	gmap.w = w
 	gmap.h = h
 
