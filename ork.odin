@@ -83,7 +83,6 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	}
 
 	internal = {
-		running = true,
 		bg_color = {0, 0, 0, 255},
 	// 	max_fps = 240,
 		title = "Untitled Ork Game",
@@ -127,6 +126,8 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	/************    Loop    ************/
 	t1 := time.tick_now()
 	internal.dt = time.Second / 60
+
+	internal.running = true
 
 	main_loop:
 	for internal.running {
@@ -326,6 +327,23 @@ get_screen_mouse_position :: proc() -> Vec2 {
 	pos := k2.get_mouse_position()
 	return Vec2{int(pos.x), int(pos.y)}
 }
+
+
+set_main_console :: proc(c: ^Console) {
+	if c.id == internal.main_console.id do return
+	lc := internal.main_console // last main console
+	internal.main_console = c
+
+	// if this is true, we're either still in init or shutdown,
+	// so no need to do anything else
+	if !internal.running do return
+
+	if c.w != lc.w || c.h != lc.h \
+	|| c._font.tw != lc._font.tw || c._font.th != lc._font.th {
+		_resize_window()
+	}
+}
+
 
 
 /*******************************************************************************
