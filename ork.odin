@@ -37,7 +37,7 @@ __error_quit :: log.__error_quit
 	user_quit    : proc(),
 
 	k2_state     : ^k2.State,
-	// title        : string,
+	title        : string,
 
 	running      : bool,
 	screen_w     : int,
@@ -86,6 +86,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 		running = true,
 		bg_color = {0, 0, 0, 255},
 	// 	max_fps = 240,
+		title = "Untitled Ork Game",
 
 		user_init = init,
 		user_tick = tick,
@@ -110,7 +111,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	// TODO: might be better to init the window hidden
 	// and then show it after size being set (after 'user_init')
 	// The size here is just a placeholder.
-	internal.k2_state = k2.init(1280, 720, "no title", {
+	internal.k2_state = k2.init(1280, 720, internal.title, {
 		disable_auto_scale_hint = true,  // TODO: figure out how to work with this
 	})
 	defer k2.shutdown()
@@ -296,12 +297,13 @@ get_fps_smoothed :: proc() -> int {
 
 // (NIY) Set the title of the window.
 set_window_title :: proc(title: string) {
-	// TOOD
+	// TODO
+	internal.title = title
 }
 
 // (NIY) Enable or disable v-sync.
 set_vsync :: proc(enable: bool) {
-	// TOOD
+	// TODO
 }
 
 // (NIY) Set a maximum cap for the frame-rate.
