@@ -38,8 +38,6 @@ draw_astar_path :: proc() {
 
 
 astar_example_init :: proc() {
-	gmap.map_type = MapType.Dungeon
-
 	init_map(GW, GH, &gmap, &player)
 	init_enemy(&enemy, &gmap)
 

@@ -109,9 +109,9 @@ MapType :: enum {
 init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 	// delete map if it's been initialized before
 	delete(gmap.tiles)
-	// ork.delete_fov(gmap.fovmap)
 	ork.delete_mapgen(gmap.mapgen)
 
+	gmap.map_type = MapType.Dungeon
 	gmap.w = w
 	gmap.h = h
 
@@ -135,15 +135,13 @@ init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 		gmap.fovmap = ork.new_fov(w, h)
 	}
 
-	block := ork.index_to_char(ex_console, 219)
-
 	for j in 0 ..< h {
 		for i in 0 ..< w {
 			idx := i+j*w
 			if mapgen.cells[idx] == mapgen.floor_id {
-				gmap.tiles[idx] = new_tile(TileType.Floor, 0, {}, ork.BROWN3, true, true)
+				gmap.tiles[idx] = new_tile(.Floor, 0, {}, ork.BROWN2, true, true)
 			} else {
-				gmap.tiles[idx] = new_tile(TileType.Wall, block, ork.BROWN6, ork.BLACK, false, false)
+				gmap.tiles[idx] = new_tile(.Wall, '#', ork.GRAY4, ork.BLACK, false, false)
 			}
 		}
 	}
@@ -218,8 +216,6 @@ draw_tiles_fov_cam :: proc(console: ^ork.Console, gmap: ^GameMap, cam: ^ork.Came
 				fg := ork.color_darkened(tile.fg, tile_darken_percent)
 				bg := ork.color_darkened(tile.bg, tile_darken_percent)
 				ork.draw_cell(console, i, j, tile.glyph, fg, bg)
-			// } else {
-			// 	ork.draw_cell(console, i, j, nil, ork.BLACK, ork.BLACK)
 			}
 		}
 	}
