@@ -32,12 +32,12 @@ init :: proc() {
 	// you create at least one console during this phase, as Ork sets
 	// the window size based on the first console that is created.
 
-	font := ork.new_font("path/to/font.png")  // presumes cp437 codepage by default
-	console = ork.new_console(80, 45, font)
+	console = ork.new_console(80, 45)
 }
 
 tick :: proc() {
 	// This is where you update your game and render your consoles.
+
 	ork.draw_cell(console, 10, 10, '@', ork.BLUE6)
 	ork.render(console)
 }
@@ -45,7 +45,8 @@ tick :: proc() {
 quit :: proc() {
 	// You can use `quit` to close things up, free memory allocations, etc.
 
-	// The `quit` callback is optional. You can pass `nil` to `ork.start` in its place, if you don't need it.
+	// The `quit` callback is optional. You can pass `nil` to `ork.start`
+	// in its place, if you don't need it.
 }
 ```
 
