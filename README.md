@@ -32,7 +32,7 @@ init :: proc() {
 	// you create at least one console during this phase, as Ork sets
 	// the window size based on the first console that is created.
 
-	font := ork.new_font("my_font")
+	font := ork.new_font("path/to/font.png")  // presumes cp437 codepage by default
 	console = ork.new_console(80, 45, font)
 }
 
