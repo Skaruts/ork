@@ -65,8 +65,6 @@ init :: proc() {
 	ex_console = ork.new_console(GW, GH, fonts[curr_font])
 	ex_console.x = UI_WIDTH+1
 
-	ork.clear_cells(ex_console, ork.GRAY3)
-
 	ks, _ := slice.map_keys(examples)
 	keys = ks
 	slice.sort(keys)
