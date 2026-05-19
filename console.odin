@@ -29,7 +29,6 @@ Cells :: struct {
 	bgs    : []Color,
 }
 
-
 Batch_Rendering :: struct {
 	verts    : []Vec2f,
 	uvs      : []Vec2f,
@@ -80,6 +79,8 @@ Console :: struct {
 	_bg_tex         : k2.Texture,
 	_main_rtex      : k2.Render_Texture,
 }
+
+
 
 // Creates a new console of `w` width and `h` height, with `font` font.
 // Cell size overrides can be passed to `cw_ovr` and `ch_ovr`.
@@ -189,6 +190,7 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	free(c)
 }
 
+
 @private _reset_console :: proc(c: ^Console, is_reset: bool) {
 
 	// make sure these cells are different from the others, so the console
@@ -218,11 +220,12 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	}
 }
 
+
 // Updates the internal contents of the console to be ready for rendering.
 // There shouldn't be a need to manually call this procedure. It's called
-// automatically in `render_console`.
+// automatically in `render`.
 // NOTE: changes made to the console's cells after this call, won't be rendered
-// to the screen on the next call to `render_console`. This should only be
+// to the screen on the next call to `render`. This should only be
 // called when no more changes are required before rendering.
 _update :: proc(c: ^Console) {
 	// t1 := time.tick_now()
@@ -239,12 +242,10 @@ _update :: proc(c: ^Console) {
 	// fmt.printfln("update in %d", time.tick_since(t1))
 }
 
+
 // Renders a console to the screen.
 render :: proc(c: ^Console) {
 	if !c._is_updated do _update(c)
-
-	cw, ch := get_cell_size(c)
-	rtr := k2.get_texture_rect(c._main_rtex.texture)
 
 	k2.set_render_texture(c._main_rtex)
 	{
@@ -258,9 +259,10 @@ render :: proc(c: ^Console) {
 	}
 	k2.set_render_texture(nil)
 
-	dst_rect := Rectf{f32(c.x*cw), f32(c.y*ch), f32(c.w*cw), f32(c.h*ch)}
-	// dst_rect := Rectf{0, 0, f32(c.w*cw), f32(c.h*ch)}
-	k2.draw_texture_fit(c._main_rtex.texture, rtr, dst_rect, {}, 0, c.tint)
+	cw, ch := get_cell_size(c)
+	src := k2.get_texture_rect(c._main_rtex.texture)
+	dst := Rectf{f32(c.x*cw), f32(c.y*ch), f32(c.w*cw), f32(c.h*ch)}
+	k2.draw_texture_fit(c._main_rtex.texture, src, dst, {}, 0, c.tint)
 
 	c._is_updated = false // reset
 }
@@ -284,6 +286,7 @@ render :: proc(c: ^Console) {
 	if f, ok := bg.?; ok do c._new_cells.bgs[idx] = f
 }
 
+
 // Returns the console's width and height as separate values.
 get_size :: proc(c: ^Console) -> (int, int) {
 	return c.w, c.h
@@ -293,6 +296,7 @@ get_size :: proc(c: ^Console) -> (int, int) {
 get_sizev :: proc(c: ^Console) -> Vec2 {
 	return Vec2{c.w, c.h}
 }
+
 
 // Returns the font currently being used by the console.
 get_font :: proc(c: ^Console) -> ^Font {
@@ -328,6 +332,7 @@ is_rect_in_bounds :: proc(c: ^Console, #any_int x1, y1, x2, y2: int) -> bool {
 	    && y2 >= ca.y && y1 < ca.y+ca.h
 }
 
+
 //	Returns the rectangle of the console's clipping area (the are within which things can be drawn onto the console).
 get_clipping_area :: proc(c: ^Console) -> Rect {
 	return c._clip_area
@@ -342,14 +347,15 @@ set_clipping_area :: proc(c: ^Console, r: Maybe(Rect) = nil) {
 	}
 }
 
-
-get_clipping_bounds :: proc(c: ^Console, x, y, w, h: int) -> (int, int, int, int) {
+// TODO: this really needs a better name
+_get_clipping_bounds :: proc(c: ^Console, x, y, w, h: int) -> (int, int, int, int) {
 	left   := max(x,   c._clip_area.x)
 	top    := max(y,   c._clip_area.y)
 	right  := min(x+w, c._clip_area.x + c._clip_area.w)
 	bottom := min(y+h, c._clip_area.y + c._clip_area.h)
 	return left, top, right, bottom
 }
+
 
 // Returns the console's cell_size as two separate values. (This is not the same as the font's tile size (`font.tw`, `font.th`) if it was overridden.)
 get_cell_size :: proc(c: ^Console) -> (int, int) {
@@ -704,7 +710,7 @@ draw_image_fg_index :: proc(c: ^Console, #any_int x, y: int,
 	w, h := image.w, image.h
 	if !is_rect_in_bounds(c, x, y, x+w-1, y+h-1) do return
 
-	l, t, r, b := get_clipping_bounds(c, x, y, w, h)
+	l, t, r, b := _get_clipping_bounds(c, x, y, w, h)
 
 	for j in 0 ..< h {
 		for i in 0 ..< w {
@@ -732,7 +738,7 @@ draw_image_bg :: proc(c: ^Console, #any_int x, y: int, image: ^Image, key_color:
 	w, h := image.w, image.h
 	if !is_rect_in_bounds(c, x, y, x+w-1, y+h-1) do return
 
-	l, t, r, b := get_clipping_bounds(c, x, y, w, h)
+	l, t, r, b := _get_clipping_bounds(c, x, y, w, h)
 
 	for j in 0 ..< h {
 		for i in 0 ..< w {
