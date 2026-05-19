@@ -20,6 +20,7 @@ examples := map[string]ProcGroup {
 	"FOVs"      = ProcGroup{ fovs_example_init, fovs_example_update, fovs_example_render, fovs_example_quit },
 	"AStar"     = ProcGroup{ astar_example_init, astar_example_update, astar_example_render, astar_example_quit },
 	"Dijkstra"  = ProcGroup{ dij_example_init, dij_example_update, dij_example_render, dij_example_quit },
+	"Camera"    = ProcGroup{ camera_example_init, camera_example_update, camera_example_render, camera_example_quit },
 	"REXPaint"  = ProcGroup{ rexpaint_example_init, rexpaint_example_update, rexpaint_example_render, rexpaint_example_quit },
 }
 keys: []string
