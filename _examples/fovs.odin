@@ -17,7 +17,6 @@ import ork "../"  // Ork itself
 @(private="file") fov_light_walls := true
 
 @(private="file") theme := 0
-@(private="file") ground_tile, wall_tile: Tile
 
 
 
@@ -60,7 +59,8 @@ paint_cell :: proc(tile_type: TileType) {
 
 	idx := mx+my*gmap.w
 	if tile_type == gmap.tiles[idx].type do return
-	gmap.tiles[idx] = tile_type == .Wall ? new_tile(wall_tile) : new_tile(ground_tile)
+	gmap.tiles[idx] = tile_type == .Wall ? new_tile(wall_tile) : new_tile(floor_tile)
+
 
 	tile := gmap.tiles[idx]
 	ork.fov_set_cell(gmap.fovmap, mx, my, tile.transparent, tile.walkable)

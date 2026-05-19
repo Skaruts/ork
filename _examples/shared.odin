@@ -54,6 +54,9 @@ show_fog_of_war     : = true
 should_redraw : bool = true
 player_moved  : bool
 
+floor_tile := new_tile(.Floor, 0, {}, ork.BROWN2, true, true)
+wall_tile  := new_tile(.Wall, '#', ork.GRAY4, ork.BLACK, false, false)
+
 
 
 new_tile :: proc {
@@ -61,11 +64,11 @@ new_tile :: proc {
 	new_tile_from_data,
 }
 
-new_tile_from_tile :: proc(t: Tile) -> Tile {
-	return new_tile_from_data(t.type, t.glyph, t.fg, t.bg, t.walkable, t.transparent)
+new_tile_from_tile :: proc "contextless" (t: Tile) -> Tile {
+	return new_tile_from_data(t.type, t.glyph, t.fg, t.bg, t.walkable, t.transparent, t.explored)
 }
 
-new_tile_from_data :: proc(type: TileType, glyph: ork.Rune, fg, bg: ork.Color,
+new_tile_from_data :: proc "contextless" (type: TileType, glyph: ork.Rune, fg, bg: ork.Color,
 				walkable, transparent:bool) -> Tile {
 	return Tile {
 		type        = type,
@@ -139,9 +142,9 @@ init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 		for i in 0 ..< w {
 			idx := i+j*w
 			if mapgen.cells[idx] == mapgen.floor_id {
-				gmap.tiles[idx] = new_tile(.Floor, 0, {}, ork.BROWN2, true, true)
+				gmap.tiles[idx] = new_tile(floor_tile)
 			} else {
-				gmap.tiles[idx] = new_tile(.Wall, '#', ork.GRAY4, ork.BLACK, false, false)
+				gmap.tiles[idx] = new_tile(wall_tile)
 			}
 		}
 	}
