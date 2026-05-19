@@ -129,12 +129,9 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	c.tint = WHITE
 	c._clip_area = {c.x, c.y, c.w, c.h}
 
-	if font != nil {
-		c._font = font
-	} else {
-		img := new_image_from_memory(#load("res/default_font_16x16.png"))
-		c._font = new_font_from_image("default_font", img)
-	}
+	c._font = font != nil \
+		? font            \
+		: internal.default_font
 
 	c._new_cells = Cells {
 		make([]Index, w*h, c._allocator),

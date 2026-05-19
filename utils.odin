@@ -1,5 +1,6 @@
 package ork
 
+import "core:fmt"
 
 import "core:math"
 import "core:math/rand"
@@ -177,7 +178,9 @@ new_image_empty :: proc(w, h: int/*, color: Maybe(Color)*/) -> ^Image {
 
 new_image_from_file :: proc(img_path: string) -> ^Image {
 	img := _create_image_from_file(img_path)
-	append(&internal.images, img)
+	if img != nil {
+		append(&internal.images, img)
+	}
 	return img
 }
 
@@ -283,6 +286,9 @@ image_blit_rect :: proc(src_img, dst_img: ^Image, src_rect: Rect, dst_pos: Vec2,
     	img = _load_image_memory(content)
 	    return img, true
     }
+
+    // fmt.panicf()
+    __warning("couldn't find file '%s'", fullpath)
 
     return img, false
 }

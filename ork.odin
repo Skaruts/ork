@@ -52,6 +52,7 @@ __error_quit :: log.__error_quit
 	default_font_layout : ^FontLayout,
 	default_font_layout_name : string,
 
+	default_font : ^Font,
 	// error_image   : ^Image,
 	// error_texture : k2.Texture,
 
@@ -94,6 +95,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 		panic_key = .Escape,
 
 		default_font_layout_name = "cp437",
+
 	}
 
 
@@ -103,7 +105,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	internal.user_logger = log.new_logger()
 	internal.user_logger.other_locations = true  // TODO: this needs a better name
 	defer log.destroy_logger(internal.user_logger)
-	log.get_current_logger().other_locations = true
+	log.get_current_logger().other_locations = false
 
 
 	/************    Init Karl2D    ************/
@@ -113,9 +115,8 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	internal.k2_state = k2.init(1280, 720, internal.title, {
 		disable_auto_scale_hint = true,  // TODO: figure out how to work with this
 	})
-	defer k2.shutdown()
-
 	// window_scale := k2.get_window_scale()
+	defer k2.shutdown()
 
 
 	/************    Init Ork    ************/
@@ -171,6 +172,9 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 @private _init_everything :: proc() {
 	_reset_fps_history()
 	_init_default_font_layouts()
+
+	img := new_image_from_memory(#load("res/default_font_16x16.png"))
+	internal.default_font = new_font_from_image("default_font", img)
 
 	// internal.error_image = _create_error_image()
 	// internal.error_texture = k2.load_texture_from_bytes(internal.error_image.pixels)
@@ -261,7 +265,8 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
                  loc := #caller_location
             ) {
 	for len(array) > 0 {
-		free_proc(array[len(array)-1], loc)
+		// free_proc(array[len(array)-1], loc)
+		free_proc(array[0], loc)
 	}
 	delete(array^)
 }
@@ -362,6 +367,16 @@ Font :: struct {
 }
 
 
+// Deletes the given `font` and frees its memory.
+delete_font :: proc(font: ^Font, loc := #caller_location) {
+	if font == nil do return
+	idx, ok := _get_item_index(internal.fonts[:], font)
+	if ok do unordered_remove(&internal.fonts, idx)
+	k2.destroy_texture(font.texture)
+	free(font)
+}
+
+
 // Creates a new font from a bitmap font file, optionally with a `name` and a
 // `layout_name`.
 new_font :: proc {
@@ -370,14 +385,13 @@ new_font :: proc {
 	new_font_from_image,
 }
 
+
 // Creates an unnamed new font from a bitmap font file, optionally with a
 // `layout_name`.
 new_font_filepath :: proc(file_path: string,
                              layout_name:=internal.default_font_layout_name
                         ) -> ^Font {
-	font := _create_font_filepath(file_path, layout_name)
-	append(&internal.fonts, font)
-	return font
+	return new_font_with_name("", file_path, layout_name)
 }
 
 // Creates a named new font from a bitmap font file, optionally with a
@@ -385,42 +399,19 @@ new_font_filepath :: proc(file_path: string,
 new_font_with_name :: proc(name: string, file_path: string,
                           layout_name:=internal.default_font_layout_name
                     ) -> ^Font {
-	font := _create_font_with_name(name, file_path, layout_name)
-	append(&internal.fonts, font)
-	return font
+	img := new_image_from_file(file_path)
+	return new_font_from_image(name, img, layout_name)
 }
 
 // Creates a new font from an `Image` object.
 new_font_from_image :: proc(name: string, img: ^Image,
                             layout_name:=internal.default_font_layout_name
                         ) -> ^Font {
-	font := _create_font_from_image(name, img, layout_name)
-	append(&internal.fonts, font)
-	return font
-}
+	if img == nil {
+		__warning("font image is nil - using default font")
+		return internal.default_font
+	}
 
-// Deletes the given `font` and frees its memory.
-delete_font :: proc(font: ^Font, loc := #caller_location) {
-	if font == nil do return
-	idx, ok := _get_item_index(internal.fonts[:], font)
-	if ok do unordered_remove(&internal.fonts, idx)
-	_free_font(font)
-}
-
-
-
-
-
-@private _create_font_filepath :: proc(file_path: string, layout_name:=internal.default_font_layout_name) -> ^Font {
-	return _create_font_with_name("", file_path, layout_name)
-}
-
-@private _create_font_with_name :: proc(name: string, file_path: string, layout_name:=internal.default_font_layout_name) -> ^Font {
-	img := new_image_from_file(file_path)
-	return _create_font_from_image(name, img, layout_name)
-}
-
-@private _create_font_from_image :: proc(name: string, img: ^Image, layout_name:=internal.default_font_layout_name) -> ^Font {
 	layout := _get_font_layout(layout_name)
 	tex, img := _load_font_texture(img)
 
@@ -440,14 +431,12 @@ delete_font :: proc(font: ^Font, loc := #caller_location) {
 	font.th        = th
 	font.layout    = layout_name
 
+	append(&internal.fonts, font)
 	return font
 }
 
 
-@private _free_font :: proc(font: ^Font) {
-	k2.destroy_texture(font.texture)
-	free(font)
-}
+
 
 
 @private _load_font_texture :: proc(img: ^Image) -> (k2.Texture, ^Image) {
