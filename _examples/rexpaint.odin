@@ -81,6 +81,7 @@ rexpaint_example_init :: proc() {
 	ork.camera_set_position(cam, player.pos)
 }
 
+
 rexpaint_example_update :: proc() {
 	if !in_menu {
 		dir := ork.Vec2{}
@@ -116,9 +117,8 @@ rexpaint_example_render :: proc() {
 	ork.render(ex_console)
 }
 
+
 rexpaint_example_quit :: proc() {
 	delete(gmap.tiles)
-
-	// print("game - len: ", len(gmap.fovmap._circle_mask.grid))
 }
 

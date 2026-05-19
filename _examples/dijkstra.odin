@@ -13,7 +13,7 @@ import ork "../"  // Ork itself
 @(private="file") enemy  := Entity { {}, 'E', ork.BLUE7,  ork.BLACK }
 
 @(private="file") debug_draw_heat_map  := false
-@(private="file") debug_draw_distances := true
+@(private="file") debug_draw_distances := false
 @(private="file") debug_draw_path      := true
 
 @(private="file")
@@ -44,33 +44,7 @@ gradient := [?]ork.Color {
 
 
 
-
-_draw_heatmap_full :: proc() {
-	for j in 0 ..< gmap.h {
-		for i in 0 ..< gmap.w {
-			if !gmap.tiles[i+j*gmap.w].walkable {
-				ork.draw_cell(ex_console, i, j, ' ', nil, ork.GREY3)
-			} else {
-				val := clamp( int(dij.nodes[i+j*gmap.w].distance), -35, 35)
-				glyph := _LETTERS[ abs(val) ]
-
-				gradt_pos := max(0, int( min(val, 35) / heatmap_steps))
-
-				c1 := gradient[gradt_pos]
-				c2 := val < 0 ? gradient[max(0, gradt_pos-1)] : gradient[min(len(gradient)-1, gradt_pos+1)]
-
-				percent: f32 = (abs(f32(val % heatmap_steps)*100) / f32(heatmap_steps) / 100)
-
-				c3 := ork.color_lerped(c1, c2, percent)
-				if val == -35 do c3 = gradient[len(gradient)-1]
-				ork.draw_cell(ex_console, i, j, glyph, c3, val < 0 ? ork.TRANSP : ork.TRANSP)
-			}
-		}
-	}
-}
-
-
-_draw_heatmap_no_dists :: proc() {
+_draw_heatmap :: proc() {
 	for j in 0 ..< gmap.h {
 		for i in 0 ..< gmap.w {
 			if !gmap.tiles[i+j*gmap.w].walkable {
@@ -191,19 +165,15 @@ dij_example_update :: proc() {
 	if !player_moved && !should_redraw do return
 
 	ork.clear_cells(ex_console)
-	// compute_fov()
-	_recompute_dijkstra()
 
+	_recompute_dijkstra()
 	draw_tiles(&gmap)
+
 	ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
 	ork.draw_cell(ex_console, enemy.pos.x, enemy.pos.y, enemy.glyph, enemy.fg, enemy.bg)
 
-	if debug_draw_heat_map {
-		_draw_heatmap_no_dists()
-		// if debug_draw_distances do _draw_heatmap_full()
-		// else                   do _draw_heatmap_no_dists()
-		if debug_draw_distances do _draw_dists()
-	}
+	if debug_draw_heat_map  do _draw_heatmap()
+	if debug_draw_distances do _draw_dists()
 
 	if debug_draw_path {
 		path := ork.dijkstra_compute_path(dij, enemy.pos.x, enemy.pos.y)
@@ -228,9 +198,6 @@ dij_example_update :: proc() {
 dij_example_render :: proc() {
 	_draw_ui()
 	ork.render(ex_console)
-
-	// ork.set_window_title(fmt.tprintf("%s - %d fps", title, ork.get_fps_smoothed()))
-	// ork.set_window_title(fmt.tprintf("%s - %d fps", title, ork.get_fps()))
 }
 
 

@@ -20,7 +20,6 @@ drawing_example_init :: proc() {
 
 
 drawing_example_update :: proc() {
-	// if !should_redraw do return
 	ork.clear_cells(ex_console)  // clearing is optional
 	{
 		x, y, w, h := 7, 5, 5, 5

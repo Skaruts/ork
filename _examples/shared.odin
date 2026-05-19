@@ -40,6 +40,13 @@ Entity :: struct {
 	fg, bg : ork.Color,
 }
 
+MapType :: enum {
+	Empty,
+	Dungeon,
+	Caves,
+	Drunk_Walk,
+}
+
 fov_radius          : = 20
 tile_darken_percent : = 0.7
 show_fog_of_war     : = true
@@ -72,7 +79,8 @@ new_tile_from_data :: proc(type: TileType, glyph: ork.Rune, fg, bg: ork.Color,
 }
 
 
-// this allows sliding along the walls
+// This allows sliding along the walls. May not be so ideal
+// for real games, but it's great for testing.
 try_move :: proc(gmap: GameMap, ent: ^Entity, dx, dy: int) -> bool {
 	dx, dy := dx, dy
 	pos := &ent.pos
@@ -96,13 +104,6 @@ try_move :: proc(gmap: GameMap, ent: ^Entity, dx, dy: int) -> bool {
 		return true
 	}
 	return false
-}
-
-MapType :: enum {
-	Empty,
-	Dungeon,
-	Caves,
-	Drunk_Walk,
 }
 
 
@@ -157,6 +158,7 @@ init_fov :: proc(gmap: ^GameMap) {
 	}
 }
 
+
 init_enemy :: proc(enemy: ^Entity, gmap: ^GameMap) {
 	#partial switch gmap.map_type {
 		case .Dungeon:
@@ -177,6 +179,7 @@ draw_tiles :: proc(gmap: ^GameMap) {
 	}
 }
 
+
 draw_tiles_fov :: proc(console: ^ork.Console, gmap: ^GameMap) {
 	for j in 0 ..< gmap.h {
 		for i in 0 ..< gmap.w {
@@ -194,6 +197,7 @@ draw_tiles_fov :: proc(console: ^ork.Console, gmap: ^GameMap) {
 		}
 	}
 }
+
 
 draw_tiles_fov_cam :: proc(console: ^ork.Console, gmap: ^GameMap, cam: ^ork.Camera, ) {
 	rect := ork.camera_get_visible_world_rect(cam)
@@ -219,6 +223,7 @@ draw_tiles_fov_cam :: proc(console: ^ork.Console, gmap: ^GameMap, cam: ^ork.Came
 		}
 	}
 }
+
 
 
 /********************************************

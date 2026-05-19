@@ -42,8 +42,8 @@ main :: proc() {
 init :: proc() {
 	ork.set_panic_key(.None)
 
-	// you can use the same key on multiple actions,
-	// for example: diagonal movement with numpad keys
+	// You can bind input actions to keys/combos, and you can use the same key
+	// on multiple actions. E.g. for diagonal movement with numpad keys:
 	ork.add_binds( "move_left",  { .A, .Left,  .NP_4, .NP_7, .NP_1 } )
 	ork.add_binds( "move_right", { .D, .Right, .NP_6, .NP_9, .NP_3 } )
 	ork.add_binds( "move_up",    { .W, .Up,    .NP_8, .NP_7, .NP_9 } )
@@ -63,7 +63,11 @@ init :: proc() {
 
 	ui_console = ork.new_console(MAIN_GW, MAIN_GH, fonts[curr_font])
 	ex_console = ork.new_console(GW, GH, fonts[curr_font])
+
+	// You can set the position of a console. This will move it by steps
+	// of its own cell size on the screen.
 	ex_console.x = UI_WIDTH+1
+
 
 	ks, _ := slice.map_keys(examples)
 	keys = ks

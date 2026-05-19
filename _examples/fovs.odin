@@ -50,6 +50,7 @@ set_fov_range :: proc(dir: int) {
 	should_redraw = true
 }
 
+
 paint_cell :: proc(tile_type: TileType) {
 	mouse := ork.get_mouse_position(ex_console)
 	mx, my := mouse.x, mouse.y
