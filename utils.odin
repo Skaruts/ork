@@ -143,8 +143,8 @@ rand_default :: proc(max: uint, gen := context.random_generator) -> uint {
 	return rand.uint_max(max, gen)
 }
 
-rand_range :: proc(min, max: uint, gen := context.random_generator) -> uint {
-	return rand.uint_range(min, max, gen)
+rand_range :: proc(min, max: int, gen := context.random_generator) -> int {
+	return rand.int_range(min, max, gen)
 }
 
 
