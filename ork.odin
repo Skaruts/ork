@@ -6,6 +6,7 @@
 #+feature dynamic-literals
 package ork
 
+import "core:strings"
 import "base:intrinsics"
 
 import "core:slice"
@@ -349,6 +350,11 @@ set_main_console :: proc(c: ^Console) {
 	}
 }
 
+
+// Returns the length of a string in runes
+string_len :: proc(text: string) -> int {
+	return strings.rune_count(text)
+}
 
 
 /*******************************************************************************
