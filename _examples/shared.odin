@@ -65,7 +65,7 @@ new_tile :: proc {
 }
 
 new_tile_from_tile :: proc "contextless" (t: Tile) -> Tile {
-	return new_tile_from_data(t.type, t.glyph, t.fg, t.bg, t.walkable, t.transparent, t.explored)
+	return new_tile_from_data(t.type, t.glyph, t.fg, t.bg, t.walkable, t.transparent)
 }
 
 new_tile_from_data :: proc "contextless" (type: TileType, glyph: ork.Rune, fg, bg: ork.Color,
@@ -172,6 +172,25 @@ init_enemy :: proc(enemy: ^Entity, gmap: ^GameMap) {
 	}
 }
 
+
+paint_tile :: proc(gmap: ^GameMap, tile_type: TileType) {
+	mouse := ork.get_mouse_position(ex_console)
+	mx, my := mouse.x, mouse.y
+
+	// don't allow removing the edges, to prevent crashes
+	if mx < 1 || mx >= gmap.w-1 || my < 1 || my >= gmap.h-1 do return
+
+	idx := mx+my*gmap.w
+	if tile_type == gmap.tiles[idx].type do return
+	gmap.tiles[idx] = tile_type == .Wall  \
+	                ? new_tile(wall_tile) \
+	                : new_tile(floor_tile)
+
+
+	tile := gmap.tiles[idx]
+	ork.fov_set_cell(gmap.fovmap, mx, my, tile.transparent, tile.walkable)
+	should_redraw = true
+}
 
 draw_tiles :: proc(gmap: ^GameMap) {
 	for j in 0 ..< GH {

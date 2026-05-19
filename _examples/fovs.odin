@@ -50,22 +50,6 @@ set_fov_range :: proc(dir: int) {
 }
 
 
-paint_cell :: proc(tile_type: TileType) {
-	mouse := ork.get_mouse_position(ex_console)
-	mx, my := mouse.x, mouse.y
-
-	// don't allow removing the edges, to prevent crashes
-	if mx < 1 || mx >= gmap.w-1 || my < 1 || my >= gmap.h-1 do return
-
-	idx := mx+my*gmap.w
-	if tile_type == gmap.tiles[idx].type do return
-	gmap.tiles[idx] = tile_type == .Wall ? new_tile(wall_tile) : new_tile(floor_tile)
-
-
-	tile := gmap.tiles[idx]
-	ork.fov_set_cell(gmap.fovmap, mx, my, tile.transparent, tile.walkable)
-	should_redraw = true
-}
 
 
 _restart_map :: proc() {
@@ -99,8 +83,8 @@ fovs_example_quit :: proc() {
 
 
 _handle_input :: proc() {
-	if      ork.mouse_down({.MouseLeft})  do paint_cell(.Wall)
-	else if ork.mouse_down({.MouseRight}) do paint_cell(.Floor)
+	if      ork.mouse_down({.MouseLeft})  do paint_tile(&gmap, .Wall)
+	else if ork.mouse_down({.MouseRight}) do paint_tile(&gmap, .Floor)
 
 	else if ork.key_pressed({.Space}) {
 		gmap.map_type = MapType(math.wrap(f32(gmap.map_type)+1, len(MapType)))

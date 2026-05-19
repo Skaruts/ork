@@ -129,6 +129,9 @@ dij_example_init :: proc() {
 
 dij_example_update :: proc() {
 	if !in_menu {
+		if      ork.mouse_down({.MouseLeft})  do paint_tile(&gmap, .Wall)
+		else if ork.mouse_down({.MouseRight}) do paint_tile(&gmap, .Floor)
+
 		dir := ork.VEC2_ZERO
 		if ork.action_repeat("move_left")  do dir.x -= 1
 		if ork.action_repeat("move_right") do dir.x += 1
