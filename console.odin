@@ -1,5 +1,6 @@
 package ork
 
+import "core:fmt"
 import "core:mem"
 import "core:mem/virtual"
 import "core:unicode/utf8"
@@ -111,14 +112,15 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 
 
 @private _create_console :: proc(#any_int w, h: int, font: ^Font = nil,
-                        cw_ovr: Maybe(int)=nil, ch_ovr: Maybe(int)=nil
+                        cw_ovr: Maybe(int)=nil, ch_ovr: Maybe(int)=nil,
+                        loc := #caller_location
                     ) -> ^Console {
 	c: ^Console = new(Console)
 	c._allocator = virtual.arena_allocator(&c._arena)
 	c._rend_allocator = virtual.arena_allocator(&c._rend_arena)
 
 	if w == 0 || h == 0 {
-		fmt.panic("console dimensions cannot be zero", loc=loc)
+		fmt.panicf("console dimensions cannot be zero", loc=loc)
 	}
 
 	c.w = w

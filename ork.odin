@@ -330,7 +330,7 @@ get_screen_mouse_position :: proc() -> Vec2 {
 
 
 set_main_console :: proc(c: ^Console) {
-	if c.id == internal.main_console.id do return
+	if c == internal.main_console do return
 	lc := internal.main_console // last main console
 	internal.main_console = c
 
