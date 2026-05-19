@@ -5,7 +5,7 @@ import "core:fmt"
 import ork "../"  // Ork itself
 
 
-@(private="file") title      := "REXPaint Example (Orc)"
+@(private="file") title      := "REXPaint Example (Ork)"
 @(private="file") gmap       : GameMap
 @(private="file") cam        : ^ork.Camera
 @(private="file") player     := Entity { {}, '@', ork.AMBER7, ork.BLACK }
