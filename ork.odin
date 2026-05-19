@@ -111,11 +111,9 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	// and then show it after size being set (after 'user_init')
 	// The size here is just a placeholder.
 	internal.k2_state = k2.init(1280, 720, internal.title, {
-		disable_auto_scale_hint = true,  // TODO: figure out how to work with this
+		disable_auto_scale_hint = false,  // TODO: figure out how to work with this
 	})
 	defer k2.shutdown()
-
-	// window_scale := k2.get_window_scale()
 
 
 	/************    Init Ork    ************/
@@ -214,13 +212,17 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	internal.screen_w = w
 	internal.screen_h = h
 
-	__print(w, h)
-	k2.set_screen_size(internal.screen_w, internal.screen_h)
+	ws := k2.get_window_scale()
 
+	// __print(w, h)
+	k2.set_screen_size(int(f32(internal.screen_w)*ws), int(f32(internal.screen_h)*ws))
+
+	sw := f32(w)*ws  // scaled size
+	sh := f32(h)*ws
 	// NOTE: K2 doesn't provide the monitor size yet, so it has to be hardcoded
 	// for now. This is for centering the window.
 	mw, mh := 1920, 1080
-	k2.set_window_position(mw/2-w/2, mh/2-h/2 - 50) // subtract about 50 to account for taskbar (on Windows)
+	k2.set_window_position(int(f32(mw)/2 - sw/2), int(f32(mh)/2-sh/2 - 50)) // subtract about 50 to account for taskbar (on Windows)
 
 	// TODO: something equivalent to this
 	// sdl.SetRenderLogicalPresentation(internal.renderer, internal.screen_w, internal.screen_h, .INTEGER_SCALE)
