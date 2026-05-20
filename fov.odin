@@ -61,7 +61,8 @@ delete_fov :: proc(fovmap: ^Fovmap, loc := #caller_location) {
 
 // Computes visibily within `radius` of position `pos`, using the chosen `FovType`.
 // If `light_walls` is false, then walls will not be made visible by the algorithm.
-fov_compute :: proc(fovmap: ^Fovmap, pos: Vec2, radius: int, type: FovType, light_walls := true) {
+fov_compute :: proc(fovmap: ^Fovmap, pos: Vec2, radius: int, type: FovType, light_walls := true, loc := #caller_location) {
+	assert(radius > 0, "fov radius must be > 0", loc=loc)
  	x := int(pos.x)
  	y := int(pos.y)
  	fov_clear_radius(fovmap, x, y, radius)
