@@ -354,6 +354,19 @@ _get_clipping_bounds :: proc(c: ^Console, x, y, w, h: int) -> (int, int, int, in
 }
 
 
+// Set a new cell size for the console. If this is the `main_console`, and
+// the cell size is different from the previous, then this will resize the window.
+set_cell_size :: proc(c: ^Console, new_cw, new_ch: int) {
+	cw, ch := get_cell_size(c)
+	if cw == new_cw && ch == new_ch do return
+	c._cw = new_cw
+	c._ch = new_ch
+
+	if c == internal.main_console {
+		_resize_window()
+	}
+}
+
 // Returns the console's cell_size as two separate values. (This is not the same as the font's tile size (`font.tw`, `font.th`) if it was overridden.)
 get_cell_size :: proc(c: ^Console) -> (int, int) {
 	cw := c._cw > 0 ? c._cw : c._font.tw
@@ -366,6 +379,7 @@ get_cell_sizev :: proc(c: ^Console) -> Vec2 {
 	cw, ch := get_cell_size(c)
 	return Vec2{cw, ch}
 }
+
 
 // Returns the position of the mouse, in cell coordinates, relative to the console.
 get_mouse_position :: proc(c: ^Console) -> Vec2 {
