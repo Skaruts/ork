@@ -1,12 +1,14 @@
 package examples
 
+import "core:strings"
+import "core:fmt"
 import ork "../"  // Ork itself
 
 
 MAIN_GW :: 80  // main console grid width/height
 MAIN_GH :: 45
 
-UI_WIDTH :: 15
+UI_WIDTH :: 18
 GW :: MAIN_GW - UI_WIDTH-1   // grid dimensions used by the examples
 GH :: MAIN_GH
 
@@ -307,4 +309,78 @@ ui_selector :: proc(x, y, selected_idx: int, options: []string) {
 
 		ork.draw_text(ui_console, x+2, y+i, opt_name, fg, ork.BLACK)
 	}
+}
+
+ui_is_under_mouse :: proc(x, y, w, h: int) -> bool {
+	mp := ork.get_mouse_position(ui_console)
+	return mp.x >= x && mp.x < x+w \
+	    && mp.y >= y && mp.y < y+h
+}
+
+ui_icon_button :: proc(x, y: int, icon: ork.Index) -> bool {
+	hovered := ui_is_under_mouse(x, y, 1, 1)
+	pressed := hovered && ork.mouse_down({.MouseLeft})
+
+	fg := ork.GRAY4
+	if      pressed do fg = ork.GRAY8
+	else if hovered do fg = ork.GRAY6
+	ork.draw_cell(ui_console, x, y, icon, fg)
+
+	return pressed
+}
+
+ui_spinner :: proc(x, y, w: int, text: string, value: ^int, lo, hi, step: int) -> bool {
+	old_value := value^
+	tlen := ork.string_len(text)
+
+	// max width of digits in runes
+	nw := max(4, ork.string_len( fmt.tprintf("%d", lo < 0 ? lo : hi) ))
+
+	rb_x := x+w
+	nx   := x+w-nw
+	lb_x := nx-1
+
+	lpressed := ui_icon_button(lb_x, y, ork.Index(17))
+	rpressed := ui_icon_button(rb_x, y, ork.Index(16))
+	repeat   := (lpressed || rpressed) && ork.mouse_repeat({.MouseLeft})
+
+	if repeat {
+		if lpressed do value^ = max(lo, value^-step)
+		if rpressed do value^ = min(hi, value^+step)
+	}
+
+	ork.draw_text(ui_console, x, y, text, UI_TEXT_COL)
+
+	digit_text := strings.right_justify(fmt.tprintf("%d", value^), nw, " ", context.temp_allocator)
+	ork.draw_text(ui_console, nx, y, digit_text, UI_DIGIT)
+
+	return value^ != old_value
+}
+
+ui_spinnerf :: proc(x, y, w: int, text: string, value: ^f32, lo, hi, step: f32) -> bool {
+	old_value := value^
+	tlen := ork.string_len(text)
+
+	// max width of digits in runes
+	nw := max(4, ork.string_len( fmt.tprintf("%.2f", lo < 0 ? lo : hi) ))
+
+	rb_x := x+w
+	nx   := x+w-nw
+	lb_x := nx-1
+
+	lpressed := ui_icon_button(lb_x, y, ork.Index(17))
+	rpressed := ui_icon_button(rb_x, y, ork.Index(16))
+	repeat := (lpressed || rpressed) && ork.mouse_repeat({.MouseLeft})
+
+	if repeat {
+		if lpressed do value^ = max(lo, value^-step)
+		if rpressed do value^ = min(hi, value^+step)
+	}
+
+	ork.draw_text(ui_console, x, y, text, UI_TEXT_COL)
+
+	digit_text := strings.right_justify(fmt.tprintf("%.2f", value^), nw, " ", context.temp_allocator)
+	ork.draw_text(ui_console, nx, y, digit_text, UI_DIGIT)
+
+	return value^ != old_value
 }

@@ -75,6 +75,7 @@ DIRECTIONS := [Direction]Vec2 {
 
 
 get_random_direction :: proc(diagonals: bool) -> Vec2 {
+	context.random_generator = internal.rng
 	idx := rand.int_max( diagonals ? len(DIRECTIONS) : len(DIRECTIONS)/2  )
 	return DIRECTIONS[ Direction(idx) ]
 }
@@ -122,17 +123,29 @@ rect_touches :: proc(a, b: Rect) -> bool {
 		Random
 
 *******************************************************************************/
+// Sets a new seed for Ork's RNG.
+set_seed :: proc(new_seed: u64) {
+	internal.rng_seed = new_seed
+	rand.reset(new_seed, internal.rng)
+}
+
+// Returns the seed currently being used by Ork's RNG.
+get_seed :: proc() -> u64 {
+	return internal.rng_seed
+}
+
+
 randf :: proc {
 	randf_default,
 	randf_range,
 }
 
 randf_default :: proc() -> f64 {
-	return rand.float64()
+	return rand.float64(internal.rng)
 }
 
 randf_range :: proc(min, max: f64) -> f64 {
-	return rand.float64_range(min, max)
+	return rand.float64_range(min, max, internal.rng)
 }
 
 rand :: proc {
@@ -140,12 +153,12 @@ rand :: proc {
 	rand_range,
 }
 
-rand_default :: proc(max: uint, gen := context.random_generator) -> uint {
-	return rand.uint_max(max, gen)
+rand_default :: proc(max: uint) -> uint {
+	return rand.uint_max(max, internal.rng)
 }
 
-rand_range :: proc(min, max: int, gen := context.random_generator) -> int {
-	return rand.int_range(min, max, gen)
+rand_range :: proc(min, max: int) -> int {
+	return rand.int_range(min, max, internal.rng)
 }
 
 

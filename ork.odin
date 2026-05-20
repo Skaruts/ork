@@ -6,6 +6,8 @@
 #+feature dynamic-literals
 package ork
 
+import "base:runtime"
+import "core:math/rand"
 import "core:strings"
 import "base:intrinsics"
 
@@ -57,27 +59,32 @@ __error_quit :: log.__error_quit
 	// error_image   : ^Image,
 	// error_texture : k2.Texture,
 
-	cameras      : [dynamic]^Camera,
-	consoles     : [dynamic]^Console,
-	fonts        : [dynamic]^Font,
-	fovmaps      : [dynamic]^Fovmap,
-	paths        : [dynamic]Path,
-	rex_images   : [dynamic]^REX_Image,
-	images       : [dynamic]^Image,
-	map_gens     : [dynamic]^MapGen,
-	font_layouts : map[string]^FontLayout,
+	cameras       : [dynamic]^Camera,
+	consoles      : [dynamic]^Console,
+	fonts         : [dynamic]^Font,
+	fovmaps       : [dynamic]^Fovmap,
+	paths         : [dynamic]Path,
+	rex_images    : [dynamic]^REX_Image,
+	images        : [dynamic]^Image,
+	map_gens      : [dynamic]^MapGen,
+	noise_map_2ds : [dynamic]^NoiseMap2D,
+	font_layouts  : map[string]^FontLayout,
 
 	fps_history  : [250]int, // simple ringbuffer
 	fps_index    : int,
 	fps_average  : int,
 	max_fps      : int,
 
-	exit_value   : int,
+	// exit_value   : int,
+
+	rng_seed : u64,
+	rng_state : rand.Default_Random_State,
+	rng : runtime.Random_Generator,
 }
 
 
 start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
-	defer os.exit(internal.exit_value)
+	// defer os.exit(internal.exit_value)
 
 	when ODIN_DEBUG {
 		context.allocator = track.init()
@@ -98,6 +105,10 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 		default_font_layout_name = "cp437",
 
 	}
+
+	internal.rng_seed = u64(time.time_to_unix_nano(time.now()))
+	internal.rng_state = rand.create(internal.rng_seed)
+	internal.rng = rand.default_random_generator(&internal.rng_state)
 
 
 	/************    Init Logger    ************/
@@ -147,6 +158,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 		// for fps in internal.fps_history do sum += fps
 		// internal.fps_average = sum/len(internal.fps_history)
 
+
 		/************    Input    ************/
 		{
 			if !k2.update() || k2.key_went_down(internal.panic_key) {
@@ -155,6 +167,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 			if !internal.running do break main_loop
 			_input_begin_frame(internal.dt)
 		}
+
 
 		/************    Rendering    ************/
 		{
@@ -199,13 +212,14 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 	internal.main_console = nil // make this nil to allow freeing it
 
 	_destroy_all_paths()
-	_destroy_all(&internal.images,     delete_image)
-	_destroy_all(&internal.rex_images, rex_delete_image)
-	_destroy_all(&internal.map_gens,   delete_mapgen)
-	_destroy_all(&internal.consoles,   delete_console)
-	_destroy_all(&internal.fovmaps,    delete_fov)
-	_destroy_all(&internal.fonts,      delete_font)
-	_destroy_all(&internal.cameras,    delete_camera)
+	_destroy_all(&internal.images,        delete_image)
+	_destroy_all(&internal.rex_images,    rex_delete_image)
+	_destroy_all(&internal.map_gens,      delete_mapgen)
+	_destroy_all(&internal.consoles,      delete_console)
+	_destroy_all(&internal.noise_map_2ds, delete_noise_map_2d)
+	_destroy_all(&internal.fovmaps,       delete_fov)
+	_destroy_all(&internal.fonts,         delete_font)
+	_destroy_all(&internal.cameras,       delete_camera)
 	_free_all_font_layouts()
 }
 
@@ -283,7 +297,7 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 // Request Ork to shutdown and exit.
 exit :: proc(exit_value := 0) {
 	internal.running = false
-	internal.exit_value = exit_value
+	// internal.exit_value = exit_value
 }
 
 // Returns the frame's delta-time
@@ -355,6 +369,8 @@ set_main_console :: proc(c: ^Console) {
 string_len :: proc(text: string) -> int {
 	return strings.rune_count(text)
 }
+
+
 
 
 /*******************************************************************************
@@ -968,7 +984,7 @@ error_quit :: proc(msg:string, args: ..any, loc := #caller_location) {
 	log.error(logger=internal.user_logger, msg=msg, args=args, loc=loc)
 	// os2.exit(1)
 	internal.running = false
-	internal.exit_value = 1
+	// internal.exit_value = 1
 }
 
 

@@ -22,6 +22,7 @@ examples := map[string]ProcGroup {
 	"Dijkstra"  = ProcGroup{ dij_example_init, dij_example_update, dij_example_render, dij_example_quit },
 	"Camera"    = ProcGroup{ camera_example_init, camera_example_update, camera_example_render, camera_example_quit },
 	"REXPaint"  = ProcGroup{ rexpaint_example_init, rexpaint_example_update, rexpaint_example_render, rexpaint_example_quit },
+	"Noise"     = ProcGroup{ noise_example_init, noise_example_update, noise_example_render, noise_example_quit },
 }
 keys: []string
 
@@ -103,6 +104,7 @@ next_font :: proc() {
 	curr_font = int(math.wrap(f32(curr_font+1), f32(len(fonts))))
 	ork.set_font(ui_console, fonts[curr_font])
 	ork.set_font(ex_console, fonts[curr_font])
+	noise_example_on_switch_font()
 }
 
 
@@ -110,6 +112,7 @@ prev_font :: proc() {
 	curr_font = int(math.wrap(f32(curr_font-1), f32(len(fonts))))
 	ork.set_font(ui_console, fonts[curr_font])
 	ork.set_font(ex_console, fonts[curr_font])
+	noise_example_on_switch_font()
 }
 
 

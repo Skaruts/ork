@@ -71,8 +71,6 @@ delete_mapgen :: proc(mgen: ^MapGen, loc := #caller_location) {
 	mgen.h = h
 	mgen.floor_id = floor_id
 	mgen.wall_id  = wall_id
-	// pcg_state := new(rand.PCG_Random_State)
-	// rng           = rand.pcg_random_generator()
 
 	mgen.cells    = mapgen_create_field(w*h, wall_id, mgen.allocator)
 	mgen.barriers = mapgen_create_field(w*h, wall_id, mgen.allocator)
@@ -109,6 +107,8 @@ mapgen_carve_area :: proc(mgen: ^MapGen, x, y, w, h: int, chance := 1.0, loc := 
 
 // Fills an area of the map with walls. `chance` (percentage 0..1) controls the density with which walls will be created.
 mapgen_fill_area :: proc(mgen: ^MapGen, x, y, w, h: int, chance := 1.0, loc := #caller_location) {
+	context.random_generator = internal.rng
+
 	if x >= mgen.w-1 || y >= mgen.h-1 {
 		fmt.panicf("position is outside map (%d, %d | %d, %d)", x, y, mgen.w, mgen.h, loc=loc)
 	}
@@ -134,6 +134,8 @@ mapgen_fill_area :: proc(mgen: ^MapGen, x, y, w, h: int, chance := 1.0, loc := #
 
 
 mapgen_make_rooms_random :: proc(mgen: ^MapGen, #any_int max_rooms, min_size, max_size: int) {
+	context.random_generator = internal.rng
+
 	clear(&mgen.rooms)
 	max_tries := 3
 	attempts := 0
@@ -220,6 +222,7 @@ mapgen_carve_points :: proc(mgen: ^MapGen, points: [dynamic]Vec2, floor_id: Mayb
 }
 
 mapgen_get_random_position_in_room :: proc(r: Rect) -> Vec2 {
+	context.random_generator = internal.rng
 	x := rand.int_max(r.w-2) + r.x+1
 	y := rand.int_max(r.h-2) + r.y+1
 	return Vec2{x, y}
@@ -234,6 +237,7 @@ mapgen_get_room_center :: proc(room: Rect) -> Vec2 {
 }
 
 mapgen_get_position_in_room :: proc(mgen: ^MapGen) -> (Vec2, int) {
+	context.random_generator = internal.rng
 	if len(mgen.rooms) == 0 {
 		__warning("MapGenerator: no rooms to put player in")
 		return {}, -1
@@ -243,6 +247,7 @@ mapgen_get_position_in_room :: proc(mgen: ^MapGen) -> (Vec2, int) {
 }
 
 mapgen_get_random_position_in_map :: proc(mgen: ^MapGen) -> Vec2 {
+	context.random_generator = internal.rng
 	x := rand.int_max(mgen.w-1) + 1
 	y := rand.int_max(mgen.h-1) + 1
 	return Vec2{x, y}
@@ -399,6 +404,8 @@ mapgen_remove_spikes :: proc(mgen: ^MapGen) {
 
 
 mapgen_make_drunk_walk :: proc(gen: ^MapGen, start_pos: Vec2, steps: int, dir_chance := 1.0) -> Vec2 {
+	context.random_generator = internal.rng
+
 	dir_chance := clamp(dir_chance, 0, 1)
 
 	gen.cells[start_pos.x+start_pos.y*gen.w] = gen.floor_id
@@ -470,4 +477,5 @@ mapgen_create_drunk_caves :: proc(gen: ^MapGen, spawns, steps: int/*, dir_chance
 	// mapgen_make_drunk_walk(gen, pos, steps)
 	return mapgen_get_random_position_attempts(gen, 5000)
 }
+
 
