@@ -216,11 +216,11 @@ mapgen_make_rooms_random :: proc(mgen: ^MapGen, #any_int max_rooms, min_size, ma
 
 	for k <= max_rooms || attempts > max_tries {
 		attempts += 1
-	// for _=0, max_rooms-1 do
-		w := rand.int_max(max_size-1)       + min_size  // .rng:random(min_size, max_size)
-		h := rand.int_max(max_size-1)       + min_size  // .rng:random(min_size, max_size)
-		x := rand.int_max((mgen.w - w) - 2) + 1  // .rng:random(1, (mgen.w - w) - 1)
-		y := rand.int_max((mgen.h - h) - 2) + 1  // .rng:random(1, (mgen.h - h) - 1)
+
+		w := rand.int_max(max_size-1)       + min_size
+		h := rand.int_max(max_size-1)       + min_size
+		x := rand.int_max((mgen.w - w) - 2) + 1
+		y := rand.int_max((mgen.h - h) - 2) + 1
 
 		new_room := Rect{x, y, w, h}
 		intersects := false
@@ -347,7 +347,6 @@ mapgen_get_random_position_in_map :: proc(mgen: ^MapGen) -> Vec2 {
 
 mapgen_get_random_position_attempts :: proc(mgen: ^MapGen, attempts: int = 10000) -> Vec2 {
 	// TODO: if the map is full, this will fail
-	//       maybe use a dijkstra map or something to test if full?
 
 	attempts := attempts
 	for attempts > 0 {
