@@ -73,6 +73,21 @@ DIRECTIONS := [Direction]Vec2 {
 	.North_West = VEC2_NORTH_WEST,
 }
 
+@(rodata)
+ORTHOGONALS := [4]Vec2 {
+	VEC2_NORTH,
+	VEC2_EAST,
+	VEC2_SOUTH,
+	VEC2_WEST,
+}
+
+@(rodata)
+DIAGONALS := [4]Vec2 {
+	VEC2_NORTH_EAST,
+	VEC2_SOUTH_EAST,
+	VEC2_SOUTH_WEST,
+	VEC2_NORTH_WEST,
+}
 
 get_random_direction :: proc(diagonals: bool) -> Vec2 {
 	context.random_generator = internal.rng
