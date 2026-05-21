@@ -2,134 +2,196 @@ package ork
 
 import "core:math"
 
-BSP_Gen_Config :: struct {
-	split_chance  : f32,
-	room_chance   : f32,
-	min_leaf_size : int,
-	max_leaf_size : int,
-	min_room_size : int,
-	max_room_size : int,
+
+BSP_Config :: struct {
+	max_depth     : uint,    // how many levels down the tree can it go and split nodes
+
+	split_chance  : f32,    // percent chance (0..1) to split nodes
+	room_chance   : f32,    //  percent chance (0..1) to spawn room in each node
+
+	min_node_size : uint,
+	max_node_size : uint,    // Dimension limits of nodes and rooms.
+	min_room_size : uint,    // if room limits are 0, the node size will be used
+	max_room_size : uint,
 }
 
-BSP_Leaf :: struct {
+BSP_Node :: struct {
 	x, y, w, h : int,
 	is_split   : bool,
-	child1     : ^BSP_Leaf,
-	child2     : ^BSP_Leaf,
+	child1     : ^BSP_Node,
+	child2     : ^BSP_Node,
 	room       : Rect,
-	// tunnel   = nil,
+	depth      : uint,
+}
+
+_bsp_new_node :: proc(x, y, w, h: int, depth: uint) -> ^BSP_Node {
+	node := new(BSP_Node)
+	node.x = x
+	node.y = y
+	node.w = w
+	node.h = h
+	node.depth = depth
+	return node
 }
 
 
 // Creates a very simple dungeon.
-mapgen_create_bsp_dungeon :: proc(gen: ^MapGen, config: BSP_Gen_Config) -> Vec2 {
-	leaves, root := mapgen_make_rooms_bsp(gen, config)
-	mapgen_carve_all_rooms(gen)
-	mapgen_connect_rooms_naive(gen)
-	// connect_rooms_smart()
-	_bsp_free_node(root)
-	delete(leaves)
-	pos, _ := mapgen_get_position_in_room(gen)
+mapgen_create_bsp_dungeon :: proc(mgen: ^MapGen, cfg: BSP_Config) -> Vec2 {
+	root := mapgen_new_bsp(mgen)
+	mapgen_bsp_split_tree(mgen, root, cfg)
+	_bsp_create_rooms(mgen, root, cfg)
+
+	mapgen_carve_all_rooms(mgen)
+	mapgen_connect_rooms_naive(mgen)
+	mapgen_delete_bsp_tree(root)
+
+	pos, _ := mapgen_get_position_in_room(mgen)
 	return pos
 }
 
 
-_bsp_free_node :: proc(node: ^BSP_Leaf) {
-	if node.child1 != nil do _bsp_free_node(node.child1)
-	if node.child2 != nil do _bsp_free_node(node.child2)
+mapgen_new_bsp :: proc(mgen: ^MapGen, depth: uint = 0) -> ^BSP_Node {
+	return _bsp_new_node(0, 0, mgen.w, mgen.h, depth)
+}
+
+
+mapgen_delete_bsp_tree :: proc(node: ^BSP_Node) {
+	if node.child1 != nil do mapgen_delete_bsp_tree(node.child1)
+	if node.child2 != nil do mapgen_delete_bsp_tree(node.child2)
 	free(node)
 }
 
 
-mapgen_make_rooms_bsp :: proc(mgen: ^MapGen, config: BSP_Gen_Config) -> ([dynamic]^BSP_Leaf, ^BSP_Leaf) {
-	context.random_generator = internal.rng
-	clear(&mgen.rooms)
+mapgen_bsp_split_tree :: proc(mgen: ^MapGen, node: ^BSP_Node, cfg: BSP_Config,
+                              _should_validate := true, loc:=#caller_location
+                             ) {
+	if _should_validate do _bsp_validate_config(cfg, loc)
 
-	leaves : [dynamic]^BSP_Leaf
-	root_leaf := _bsp_new_leaf(0, 0, mgen.w, mgen.h)
-
-	append(&leaves, root_leaf)
-
-	can_split := true
-
-	for can_split {
-		can_split = false
-		for leaf, i in leaves {
-			if leaf.w > config.max_leaf_size \
-			|| leaf.h > config.max_leaf_size \
-			|| f32(randf()) < config.split_chance
-			{
-				if _bsp_split(mgen, leaf, config.min_leaf_size, config.max_leaf_size) {
-					append(&leaves, leaf.child1)
-					append(&leaves, leaf.child2)
-					can_split = true
-				}
-			}
+	if node.w > int(cfg.max_node_size) \
+	|| node.h > int(cfg.max_node_size) \
+	|| f32(randf()) < cfg.split_chance
+	{
+		mapgen_bsp_split_node(node, cfg, false)
+		if node.is_split {
+			if node.child1 != nil do mapgen_bsp_split_tree(mgen, node.child1, cfg, false)
+			if node.child2 != nil do mapgen_bsp_split_tree(mgen, node.child2, cfg, false)
 		}
 	}
-
-	_bsp_create_room(root_leaf, &mgen.rooms, config.room_chance, config.min_room_size, config.max_room_size)
-	return leaves, root_leaf
 }
 
 
-_bsp_new_leaf :: proc(x, y, w, h: int) -> ^BSP_Leaf {
-	leaf := new(BSP_Leaf)
-	leaf.x = x
-	leaf.y = y
-	leaf.w = w
-	leaf.h = h
-	return leaf
+mapgen_bsp_split_node :: proc(node: ^BSP_Node, cfg: BSP_Config,
+                              _should_validate:=true, loc:=#caller_location
+                             ) {
+	if _should_validate do _bsp_validate_config(cfg, loc)
+	if node.depth >= cfg.max_depth do return
+	horizontal := _mapgen_bsp_should_split_horizontally(node)
+	pos, ok := _mapgen_bsp_get_split_position(node, horizontal, cfg.min_node_size, cfg.max_node_size)
+	if !ok do return
+	_bsp_split(node, horizontal, pos)
+}
+
+@private
+_bsp_validate_config :: #force_inline proc(cfg: BSP_Config, loc:=#caller_location) {
+	assert(cfg.max_depth > 0, loc=loc)
+	assert(cfg.max_node_size >= cfg.min_node_size, loc=loc)
+	assert(cfg.max_room_size >= cfg.min_room_size, loc=loc)
+
+	assert(cfg.max_room_size <= cfg.max_node_size, loc=loc)
+	assert(cfg.min_room_size <= cfg.min_node_size, loc=loc)
+
 }
 
 
-_bsp_split :: proc(mgen: ^MapGen, leaf: ^BSP_Leaf, min_size, max_size: int) -> bool {
-	if leaf.is_split do return false
 
-	direction : rune
-	max_size  : int
+_mapgen_bsp_should_split_horizontally :: proc(node: ^BSP_Node) -> bool {
+	if node.w > node.h do return true
+	if node.h > node.w do return false
+	return randf() < 0.5
+}
 
-	if      leaf.w > leaf.h do direction = 'H'
-	else if leaf.h > leaf.w do direction = 'V'
-	else {
-		direction = randf() > 0.5 ? 'V' : 'H'
-	}
-	if direction == 'V' do max_size = leaf.h - min_size
-	else                do max_size = leaf.w - min_size
 
-	if max_size <= min_size do return false
+_mapgen_bsp_get_split_position :: proc(node: ^BSP_Node, horizontal: bool, min_size, max_size: uint) -> (int, bool) {
+	min_size:= int(min_size)
+	max_size:= int(max_size)
+	if horizontal do max_size = node.w - min_size
+	else          do max_size = node.h - min_size
 
-	split_pos := rand(min_size, max_size)
+	if max_size <= min_size do return 0, false
+	return rand(min_size, max_size), true
+}
 
-	if direction == 'V' {
-		leaf.child1 = _bsp_new_leaf( leaf.x, leaf.y, leaf.w, split_pos )
-		leaf.child2 = _bsp_new_leaf( leaf.x, leaf.y+split_pos, leaf.w, leaf.h-split_pos )
+
+@private
+_bsp_split :: proc(node: ^BSP_Node, horizontal: bool, position: int) -> bool {
+	if node.is_split do return false
+
+	p := position
+	if horizontal {
+		node.child1 = _bsp_new_node( node.x,   node.y, p,        node.h, node.depth+1)
+		node.child2 = _bsp_new_node( node.x+p, node.y, node.w-p, node.h, node.depth+1)
 	} else {
-		leaf.child1 = _bsp_new_leaf( leaf.x, leaf.y, split_pos, leaf.h )
-		leaf.child2 = _bsp_new_leaf( leaf.x+split_pos, leaf.y, leaf.w-split_pos, leaf.h )
+		node.child1 = _bsp_new_node( node.x, node.y,   node.w, p       , node.depth+1)
+		node.child2 = _bsp_new_node( node.x, node.y+p, node.w, node.h-p, node.depth+1)
 	}
 
-	leaf.is_split = true
+	node.is_split = true
 	return true
 }
 
 
-_bsp_create_room :: proc(leaf: ^BSP_Leaf, rooms: ^[dynamic]Rect,
-	                     room_chance: f32,
-	                     min_room_size, max_room_size: int
-	                    ) {
-	if leaf.is_split {
-		// _log:print("creating room in children", leaf, leaf.room)
-		_bsp_create_room(leaf.child1, rooms, room_chance, min_room_size, max_room_size)
-		_bsp_create_room(leaf.child2, rooms, room_chance, min_room_size, max_room_size)
-	// 75% chance of creating a room, so not all leaves will have one
-	} else if randf() < f64(room_chance) {
-		rw := rand( min_room_size, min(leaf.w-2, max_room_size) )
-		rh := rand( min_room_size, min(leaf.h-2, max_room_size) )
-		rx := rand( 1, leaf.w-1-rw )
-		ry := rand( 1, leaf.h-1-rh )
+_bsp_create_rooms :: proc(mgen: ^MapGen, node: ^BSP_Node,
+                          cfg: BSP_Config) {
+	if node.is_split {
+		_bsp_create_rooms(mgen, node.child1, cfg)
+		_bsp_create_rooms(mgen, node.child2, cfg)
 
-		leaf.room = Rect{leaf.x+rx, leaf.y+ry, rw, rh}
-		append(rooms, leaf.room)
+	} else if randf() < f64(cfg.room_chance) {
+		min_size := int(cfg.min_room_size)
+		max_size := int(cfg.max_room_size)
+
+		x, y, w, h:int
+
+		if max_size == 0 || min_size == 0 {
+			w = node.w-1
+			h = node.h-1
+		} else {
+			lo := min_size
+			hi_w := max_size == node.w ? node.w-1 : min(node.w, max_size)
+			hi_h := max_size == node.h ? node.h-1 : min(node.h, max_size)
+
+			w = lo == hi_w ? hi_w : rand(lo, hi_w)
+			h = lo == hi_h ? hi_h : rand(lo, hi_h)
+
+			if w == node.w do x = 0
+			else           do x = rand( 0, node.w-w )
+
+			if h == node.h do y = 0
+			else           do y = rand( 0, node.h-h )
+
+		}
+
+		room := Rect{node.x+x, node.y+y, w, h}
+
+		if room.x == 0 do room.x +=1
+		if room.y == 0 do room.y +=1
+
+		x2 := room.x + room.w
+		y2 := room.y + room.h
+
+		if x2 >= mgen.w {
+			diff := (x2-mgen.w)
+			room.w -= diff+1
+		}
+
+		if y2 >= mgen.h {
+			diff := (y2-mgen.h)
+			room.h -= diff+1
+		}
+
+		if room.w >= min_size && room.h >= min_size {
+			node.room = room
+			append(&mgen.rooms, node.room)
+		}
 	}
 }

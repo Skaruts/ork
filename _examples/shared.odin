@@ -130,7 +130,7 @@ init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 		case .Dungeon:    pos = ork.mapgen_create_simple_dungeon(mapgen, 15, 5, 10)
 		case .Caves:      pos = ork.mapgen_create_caves(mapgen, 0.6, 4, 3, 6)
 		case .Drunk_Walk: pos = ork.mapgen_create_drunk_caves(mapgen, 10, 200)
-		case .BSP:        pos = ork.mapgen_create_bsp_dungeon(mapgen, {50, 50, 10, 11, 7, 8})
+		case .BSP:        pos = ork.mapgen_create_bsp_dungeon(mapgen, ork.BSP_Config{8, 1, 1, 5, 10, 5, 10})
 	}
 
 	if player != nil {

@@ -190,7 +190,7 @@ mapgen_carve_all_rooms :: proc(mgen: ^MapGen) {
 
 mapgen_connect_rooms_naive :: proc(mgen: ^MapGen) {
 	for i in 1 ..< len(mgen.rooms) {
-		last_idx := i-1 > 0 ? i-1 : len(mgen.rooms)-1
+		last_idx := i-1 >= 0 ? i-1 : len(mgen.rooms)-1
 		room1 := mgen.rooms[last_idx]
 		room2 := mgen.rooms[i]
 		if ! rect_touches(room1, room2) {
