@@ -81,6 +81,76 @@ delete_mapgen :: proc(mgen: ^MapGen, loc := #caller_location) {
 }
 
 
+
+/*******************************************************************************
+
+		Quick Generation Procs
+
+	This is intended for quick use. The results are not ideal for every use case.
+	For better results, use the API directly.
+
+*******************************************************************************/
+// Creates an empty map, with walls all around.
+mapgen_create_empty :: proc(gen: ^MapGen, chance: f64) -> Vec2 {
+	mapgen_fill_area(gen, 1, 1, gen.w-2, gen.h-2, chance)
+	return mapgen_get_random_position_attempts(gen, 5000)
+}
+
+// Creates a very simple dungeon.
+mapgen_create_simple_dungeon :: proc(gen: ^MapGen, max_rooms, min_size, max_size: int) -> Vec2 {
+	mapgen_make_rooms_random(gen, max_rooms, min_size, max_size)
+	mapgen_connect_rooms_naive(gen)
+	// connect_rooms_smart()
+	pos, _ := mapgen_get_position_in_room(gen)
+	return pos
+}
+
+// Creates simple caves.
+mapgen_create_caves :: proc(gen: ^MapGen, density: f64, birth_rule, death_rule, smooth_steps: int) -> Vec2 {
+	mapgen_fill_area(gen, 1, 1, gen.w-2, gen.h-2, density)
+	mapgen_create_random_barriers(gen)
+	mapgen_smooth_cells(gen, birth_rule, death_rule, smooth_steps)
+	mapgen_remove_spikes(gen)
+	return mapgen_get_random_position_attempts(gen, 5000)
+}
+
+// Creates simple drunk walk caves.
+mapgen_create_drunk_caves :: proc(gen: ^MapGen, spawns, steps: int/*, dir_chance*/) -> Vec2 {
+	pos := mapgen_get_random_position_in_map(gen)
+	for i in 0 ..< spawns {
+		pos = mapgen_make_drunk_walk(gen, pos, steps, 0.8)
+		pos = mapgen_make_drunk_walk(gen, pos, 30, 0.05)
+	}
+	// mapgen_make_drunk_walk(gen, pos, steps)
+	return mapgen_get_random_position_attempts(gen, 5000)
+}
+
+
+
+// Creates a dungeon using a binary tree. This results in more adjacent
+// and symetrical rooms.
+mapgen_create_bsp_dungeon :: proc(mgen: ^MapGen, cfg: BSP_Config) -> Vec2 {
+	root := mapgen_new_bsp(mgen)
+
+	mapgen_bsp_split_tree(mgen, root, cfg)
+	mapgen_bsp_create_rooms(mgen, root, cfg)
+
+	mapgen_carve_all_rooms(mgen)
+	mapgen_connect_rooms_naive(mgen)
+
+	mapgen_delete_bsp_tree(root)
+
+	pos, _ := mapgen_get_position_in_room(mgen)
+	return pos
+}
+
+
+
+/*******************************************************************************
+
+		General API
+
+*******************************************************************************/
 mapgen_create_field :: proc(#any_int length: int, def_value: $T, allocator: mem.Allocator) -> GenField {
 	field := make(GenField, length, allocator)
 	slice.fill(field, def_value)
@@ -435,47 +505,220 @@ mapgen_make_drunk_walk :: proc(gen: ^MapGen, start_pos: Vec2, steps: int, dir_ch
 }
 
 
+
 /*******************************************************************************
 
-		Quick Generation Procs
-
-	This is intended for quick use. The results are not ideal for every use case.
-	For better results, use the API directly.
+		BSP Dungeon
 
 *******************************************************************************/
-// Creates an empty map, with walls all around.
-mapgen_create_empty :: proc(gen: ^MapGen, chance: f64) -> Vec2 {
-	mapgen_fill_area(gen, 1, 1, gen.w-2, gen.h-2, chance)
-	return mapgen_get_random_position_attempts(gen, 5000)
+BSP_Config :: struct {
+	max_depth     : uint,    // How many levels down the tree can it go and split nodes
+
+	split_chance  : f32,     // Percent chance (0..1) to split nodes
+	room_chance   : f32,     // Percent chance (0..1) to spawn room in each node
+
+	min_size      : uint,    // Dimension limits of nodes and rooms.
+	max_size      : uint,
+	min_room_size : uint,    // if room limits are 0, the node size will be used
+	max_room_size : uint,
 }
 
-// Creates a very simple dungeon.
-mapgen_create_simple_dungeon :: proc(gen: ^MapGen, max_rooms, min_size, max_size: int) -> Vec2 {
-	mapgen_make_rooms_random(gen, max_rooms, min_size, max_size)
-	mapgen_connect_rooms_naive(gen)
-	// connect_rooms_smart()
-	pos, _ := mapgen_get_position_in_room(gen)
-	return pos
+BSP_Node :: struct {
+	x, y, w, h : int,
+	room       : Rect,
+	depth      : uint,
+
+	_is_split   : bool,
+	_child1     : ^BSP_Node,
+	_child2     : ^BSP_Node,
 }
 
-// Creates simple caves.
-mapgen_create_caves :: proc(gen: ^MapGen, density: f64, birth_rule, death_rule, smooth_steps: int) -> Vec2 {
-	mapgen_fill_area(gen, 1, 1, gen.w-2, gen.h-2, density)
-	mapgen_create_random_barriers(gen)
-	mapgen_smooth_cells(gen, birth_rule, death_rule, smooth_steps)
-	mapgen_remove_spikes(gen)
-	return mapgen_get_random_position_attempts(gen, 5000)
+BSP_Room_Callback :: #type proc(^MapGen, ^BSP_Node, BSP_Config) -> Rect
+
+
+@private _bsp_new_node :: proc(x, y, w, h: int, depth: uint) -> ^BSP_Node {
+	node := new(BSP_Node)
+	node.x = x
+	node.y = y
+	node.w = w
+	node.h = h
+	node.depth = depth
+	return node
 }
 
-// Creates simple drunk walk caves.
-mapgen_create_drunk_caves :: proc(gen: ^MapGen, spawns, steps: int/*, dir_chance*/) -> Vec2 {
-	pos := mapgen_get_random_position_in_map(gen)
-	for i in 0 ..< spawns {
-		pos = mapgen_make_drunk_walk(gen, pos, steps, 0.8)
-		pos = mapgen_make_drunk_walk(gen, pos, 30, 0.05)
+// Returns a new node which is the root of the tree.
+mapgen_new_bsp :: proc(mgen: ^MapGen, depth: uint = 0) -> ^BSP_Node {
+	return _bsp_new_node(0, 0, mgen.w, mgen.h, depth)
+}
+
+
+// Destroys an entire tree and frees its memory.
+mapgen_delete_bsp_tree :: proc(node: ^BSP_Node) {
+	if node._child1 != nil do mapgen_delete_bsp_tree(node._child1)
+	if node._child2 != nil do mapgen_delete_bsp_tree(node._child2)
+	free(node)
+}
+
+
+// Recursively splits the entire tree from the given `node`, creating child
+// nodes as needed.
+mapgen_bsp_split_tree :: proc(mgen: ^MapGen, node: ^BSP_Node, cfg: BSP_Config,
+                              _should_validate := true, loc:=#caller_location
+                             ) {
+	if _should_validate do _bsp_validate_config(cfg, loc)
+
+	if node.w > int(cfg.max_size) \
+	|| node.h > int(cfg.max_size) \
+	|| f32(randf()) < cfg.split_chance
+	{
+		mapgen_bsp_split_node(node, cfg, false)
+		if node._is_split {
+			if node._child1 != nil do mapgen_bsp_split_tree(mgen, node._child1, cfg, false)
+			if node._child2 != nil do mapgen_bsp_split_tree(mgen, node._child2, cfg, false)
+		}
 	}
-	// mapgen_make_drunk_walk(gen, pos, steps)
-	return mapgen_get_random_position_attempts(gen, 5000)
 }
+
+
+// Splits a single node.
+mapgen_bsp_split_node :: proc(node: ^BSP_Node, cfg: BSP_Config,
+                              _should_validate:=true, loc:=#caller_location
+                             ) {
+	if _should_validate do _bsp_validate_config(cfg, loc)
+	if node.depth >= cfg.max_depth do return
+	horizontal := _mapgen_bsp_should_split_horizontally(node)
+	pos, ok := _mapgen_bsp_get_split_position(node, horizontal, cfg.min_size, cfg.max_size)
+	if !ok do return
+	_bsp_split(node, horizontal, pos)
+}
+
+
+@private _bsp_validate_config :: #force_inline proc(cfg: BSP_Config, loc:=#caller_location) {
+	assert(cfg.max_depth > 0, loc=loc)
+	assert(cfg.max_size >= cfg.min_size, loc=loc)
+	assert(cfg.max_room_size >= cfg.min_room_size, loc=loc)
+
+	assert(cfg.max_room_size <= cfg.max_size, loc=loc)
+	assert(cfg.min_room_size <= cfg.min_size, loc=loc)
+
+}
+
+
+@private _mapgen_bsp_should_split_horizontally :: proc(node: ^BSP_Node) -> bool {
+	if node.w > node.h do return true
+	if node.h > node.w do return false
+	return randf() < 0.5
+}
+
+
+@private _mapgen_bsp_get_split_position :: proc(node: ^BSP_Node, horizontal: bool,
+                                       min_size, max_size: uint
+                                      ) -> (int, bool) {
+	min_size:= int(min_size)
+	max_size:= int(max_size)
+	if horizontal do max_size = node.w - min_size
+	else          do max_size = node.h - min_size
+
+	if max_size <= min_size do return 0, false
+	return randi(min_size, max_size), true
+}
+
+
+@private _bsp_split :: proc(node: ^BSP_Node, horizontal: bool, position: int) -> bool {
+	if node._is_split do return false
+
+	p := position
+	if horizontal {
+		node._child1 = _bsp_new_node( node.x,   node.y, p,        node.h, node.depth+1)
+		node._child2 = _bsp_new_node( node.x+p, node.y, node.w-p, node.h, node.depth+1)
+	} else {
+		node._child1 = _bsp_new_node( node.x, node.y,   node.w, p       , node.depth+1)
+		node._child2 = _bsp_new_node( node.x, node.y+p, node.w, node.h-p, node.depth+1)
+	}
+
+	node._is_split = true
+	return true
+}
+
+
+// Traverses the tree and calls a user callback for each node that can have
+// a room, allowing the user to entirely decide how the rooms are built.
+mapgen_bsp_create_rooms_callback :: proc(mgen: ^MapGen, node: ^BSP_Node,
+                                         cfg: BSP_Config,
+                                         callback: BSP_Room_Callback,
+                                         loc := #caller_location) {
+	// TODO: I'm not too sure about this
+
+	if node._is_split {
+		mapgen_bsp_create_rooms(mgen, node._child1, cfg)
+		mapgen_bsp_create_rooms(mgen, node._child2, cfg)
+	} else {
+		room := callback(mgen, node, cfg)
+		assert(room.x < mgen.w && room.y < mgen.h, loc=loc)
+		assert(room.w > 0 && room.h > 0, loc=loc)
+
+		node.room = room
+		append(&mgen.rooms, node.room)
+	}
+}
+
+
+// Traverses the tree and creates rooms based on the configuration settings.
+mapgen_bsp_create_rooms :: proc(mgen: ^MapGen, node: ^BSP_Node,
+                                cfg: BSP_Config) {
+	if node._is_split {
+		mapgen_bsp_create_rooms(mgen, node._child1, cfg)
+		mapgen_bsp_create_rooms(mgen, node._child2, cfg)
+
+	} else if randf() < f64(cfg.room_chance) {
+		min_size := int(cfg.min_room_size)
+		max_size := int(cfg.max_room_size)
+
+		x, y, w, h:int
+
+		if max_size == 0 || min_size == 0 {
+			w = node.w-1
+			h = node.h-1
+		} else {
+			lo := min_size
+			hi_w := max_size == node.w ? node.w-1 : min(node.w, max_size)
+			hi_h := max_size == node.h ? node.h-1 : min(node.h, max_size)
+
+			w = lo == hi_w ? hi_w : randi(lo, hi_w)
+			h = lo == hi_h ? hi_h : randi(lo, hi_h)
+
+			if w == node.w do x = 0
+			else           do x = randi( 0, node.w-w )
+
+			if h == node.h do y = 0
+			else           do y = randi( 0, node.h-h )
+
+		}
+
+		room := Rect{node.x+x, node.y+y, w, h}
+
+		if room.x == 0 do room.x +=1
+		if room.y == 0 do room.y +=1
+
+		x2 := room.x + room.w
+		y2 := room.y + room.h
+
+		if x2 >= mgen.w {
+			diff := (x2-mgen.w)
+			room.w -= diff+1
+		}
+
+		if y2 >= mgen.h {
+			diff := (y2-mgen.h)
+			room.h -= diff+1
+		}
+
+		if room.w >= min_size && room.h >= min_size {
+			node.room = room
+			append(&mgen.rooms, node.room)
+		}
+	}
+}
+
 
 
