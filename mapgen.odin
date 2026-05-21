@@ -217,10 +217,10 @@ mapgen_make_rooms_random :: proc(mgen: ^MapGen, #any_int max_rooms, min_size, ma
 	for k <= max_rooms || attempts > max_tries {
 		attempts += 1
 
-		w := rand.int_max(max_size-1)       + min_size
-		h := rand.int_max(max_size-1)       + min_size
-		x := rand.int_max((mgen.w - w) - 2) + 1
-		y := rand.int_max((mgen.h - h) - 2) + 1
+		w := randi_range(min_size, max_size)
+		h := randi_range(min_size, max_size)
+		x := randi_range(1, mgen.w-(w+1))
+		y := randi_range(1, mgen.h-(h+1))
 
 		new_room := Rect{x, y, w, h}
 		intersects := false
