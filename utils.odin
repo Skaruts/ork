@@ -109,23 +109,19 @@ rectf_intersects :: proc(a, b: Rectf) -> bool {
 }
 
 rect_intersects :: proc(a, b: Rect) -> bool {
-	return rectf_intersects(
-		Rectf{f32(a.x), f32(a.y), f32(a.w), f32(a.h)},
-		Rectf{f32(b.x), f32(b.y), f32(b.w), f32(b.h)}
-	)
+	return a.x < b.x+b.w && a.x+a.w > b.x \
+		&& a.y < b.y+b.h && a.y+a.h > b.y
 }
 
 
 rectf_touches :: proc(a, b: Rectf) -> bool {
-	return a.x <= b.x+b.w && a.x+a.w >= b.x \
-		&& a.y <= b.y+b.h && a.y+a.h >= b.y
+	return a.x <= b.x+b.w+1 && a.x+a.w+1 >= b.x \
+		&& a.y <= b.y+b.h+1 && a.y+a.h+1 >= b.y
 }
 
 rect_touches :: proc(a, b: Rect) -> bool {
-	return rectf_touches(
-		Rectf{f32(a.x), f32(a.y), f32(a.w), f32(a.h)},
-		Rectf{f32(b.x), f32(b.y), f32(b.w), f32(b.h)}
-	)
+	return a.x <= b.x+b.w+1 && a.x+a.w+1 >= b.x \
+		&& a.y <= b.y+b.h+1 && a.y+a.h+1 >= b.y
 }
 
 
