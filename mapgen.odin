@@ -98,9 +98,10 @@ mapgen_create_empty :: proc(gen: ^MapGen, chance: f64) -> Vec2 {
 
 // Creates a very simple dungeon.
 mapgen_create_simple_dungeon :: proc(gen: ^MapGen, max_rooms, min_size, max_size: int) -> Vec2 {
+	context.random_generator = internal.rng
 	mapgen_make_rooms_random(gen, max_rooms, min_size, max_size)
-	mapgen_connect_rooms_naive(gen)
-	// connect_rooms_smart()
+	// mapgen_connect_rooms_sequential(gen)
+	mapgen_connect_rooms_directional(gen, randf() > 0.5 )
 	pos, _ := mapgen_get_position_in_room(gen)
 	return pos
 }
@@ -130,13 +131,15 @@ mapgen_create_drunk_caves :: proc(gen: ^MapGen, spawns, steps: int/*, dir_chance
 // Creates a dungeon using a binary tree. This results in more adjacent
 // and symetrical rooms.
 mapgen_create_bsp_dungeon :: proc(mgen: ^MapGen, cfg: BSP_Config) -> Vec2 {
+	context.random_generator = internal.rng
 	root := mapgen_new_bsp(mgen)
 
 	mapgen_bsp_split_tree(mgen, root, cfg)
 	mapgen_bsp_create_rooms(mgen, root, cfg)
 
 	mapgen_carve_all_rooms(mgen)
-	mapgen_connect_rooms_naive(mgen)
+	mapgen_connect_rooms_sequential(mgen)  // for BSP, I think 'sequential' works better
+	// mapgen_connect_rooms_directional(mgen, randf() > 0.5 )
 
 	mapgen_delete_bsp_tree(root)
 
@@ -257,27 +260,42 @@ mapgen_carve_all_rooms :: proc(mgen: ^MapGen) {
 	}
 }
 
+// Create corridors between rooms using a blind approach of iterating
+// through the list of rooms and connecting each room to the next.
+mapgen_connect_rooms_sequential :: proc(mgen: ^MapGen) {
+	context.random_generator = internal.rng
 
-mapgen_connect_rooms_naive :: proc(mgen: ^MapGen) {
 	for i in 1 ..< len(mgen.rooms) {
 		last_idx := i-1 >= 0 ? i-1 : len(mgen.rooms)-1
 		room1 := mgen.rooms[last_idx]
 		room2 := mgen.rooms[i]
-		if ! rect_touches(room1, room2) {
-			from := mapgen_get_random_position_in_room(room1)
-			to := mapgen_get_random_position_in_room(room2)
 
-			// TODO: have this randomly choose a side
-			// local mid = Vec2(to.x, from.y)
-			mid := Vec2{from.x, to.y}
+		if rect_touches(room1, room2) do continue
 
-			l1 := line_points(from.x, from.y, mid.x, mid.y)
-			l2 := line_points(mid.x, mid.y, to.x, to.y)
+		from := mapgen_get_random_position_in_room(room1)
+		to   := mapgen_get_random_position_in_room(room2)
+		mid: Vec2
 
-			mapgen_carve_points(mgen, l1)
-			mapgen_carve_points(mgen, l2)
-		}
+		if randf() > 0.5 do mid = Vec2{to.x, from.y}
+		else             do mid = Vec2{from.x, to.y}
+
+		l1 := line_points(from.x, from.y, mid.x, mid.y)
+		l2 := line_points(mid.x, mid.y, to.x, to.y)
+
+		mapgen_carve_points(mgen, l1)
+		mapgen_carve_points(mgen, l2)
 	}
+}
+
+// Create corridors between rooms using a guided approach of choosing a
+// direction and connecting each room to the closest one in that direction.
+mapgen_connect_rooms_directional :: proc(mgen: ^MapGen, horizontal: bool) {
+	sort_vert  := proc(a, b: Rect) -> bool { return a.y < b.y }
+	sort_horz  := proc(a, b: Rect) -> bool { return a.x < b.x }
+
+	slice.sort_by(mgen.rooms[:], horizontal ? sort_horz : sort_vert)
+
+	mapgen_connect_rooms_sequential(mgen)
 }
 
 
@@ -291,8 +309,10 @@ mapgen_carve_points :: proc(mgen: ^MapGen, points: [dynamic]Vec2, floor_id: Mayb
 	}
 }
 
+
 mapgen_get_random_position_in_room :: proc(r: Rect) -> Vec2 {
 	context.random_generator = internal.rng
+
 	x := rand.int_max(r.w-2) + r.x+1
 	y := rand.int_max(r.h-2) + r.y+1
 	return Vec2{x, y}
@@ -308,6 +328,7 @@ mapgen_get_room_center :: proc(room: Rect) -> Vec2 {
 
 mapgen_get_position_in_room :: proc(mgen: ^MapGen) -> (Vec2, int) {
 	context.random_generator = internal.rng
+
 	if len(mgen.rooms) == 0 {
 		__warning("MapGenerator: no rooms to put player in")
 		return {}, -1
@@ -318,6 +339,7 @@ mapgen_get_position_in_room :: proc(mgen: ^MapGen) -> (Vec2, int) {
 
 mapgen_get_random_position_in_map :: proc(mgen: ^MapGen) -> Vec2 {
 	context.random_generator = internal.rng
+
 	x := rand.int_max(mgen.w-1) + 1
 	y := rand.int_max(mgen.h-1) + 1
 	return Vec2{x, y}
@@ -566,6 +588,7 @@ mapgen_bsp_split_tree :: proc(mgen: ^MapGen, node: ^BSP_Node, cfg: BSP_Config,
                               _should_validate := true, loc:=#caller_location
                              ) {
 	if _should_validate do _bsp_validate_config(cfg, loc)
+	context.random_generator = internal.rng
 
 	if node.w > int(cfg.max_size) \
 	|| node.h > int(cfg.max_size) \
@@ -605,6 +628,7 @@ mapgen_bsp_split_node :: proc(node: ^BSP_Node, cfg: BSP_Config,
 
 
 @private _mapgen_bsp_should_split_horizontally :: proc(node: ^BSP_Node) -> bool {
+	context.random_generator = internal.rng
 	if node.w > node.h do return true
 	if node.h > node.w do return false
 	return randf() < 0.5
@@ -614,6 +638,8 @@ mapgen_bsp_split_node :: proc(node: ^BSP_Node, cfg: BSP_Config,
 @private _mapgen_bsp_get_split_position :: proc(node: ^BSP_Node, horizontal: bool,
                                        min_size, max_size: uint
                                       ) -> (int, bool) {
+	context.random_generator = internal.rng
+
 	min_size:= int(min_size)
 	max_size:= int(max_size)
 	if horizontal do max_size = node.w - min_size
@@ -666,6 +692,8 @@ mapgen_bsp_create_rooms_callback :: proc(mgen: ^MapGen, node: ^BSP_Node,
 // Traverses the tree and creates rooms based on the configuration settings.
 mapgen_bsp_create_rooms :: proc(mgen: ^MapGen, node: ^BSP_Node,
                                 cfg: BSP_Config) {
+	context.random_generator = internal.rng
+
 	if node._is_split {
 		mapgen_bsp_create_rooms(mgen, node._child1, cfg)
 		mapgen_bsp_create_rooms(mgen, node._child2, cfg)
