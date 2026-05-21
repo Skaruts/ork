@@ -86,8 +86,8 @@ camera_example_update :: proc() {
 	if !player_moved && !should_redraw do return
 
 	for &e in entities {
-		dx := ork.rand(-1, 2)  // upper limit is exclusive
-		dy := ork.rand(-1, 2)
+		dx := ork.randi(-1, 2)  // upper limit is exclusive
+		dy := ork.randi(-1, 2)
 		try_move(gmap, &e, dx, dy)
 	}
 

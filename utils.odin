@@ -148,16 +148,16 @@ randf_range :: proc(min, max: f64) -> f64 {
 	return rand.float64_range(min, max, internal.rng)
 }
 
-rand :: proc {
-	rand_default,
-	rand_range,
+randi :: proc {
+	randi_default,
+	randi_range,
 }
 
-rand_default :: proc(max: uint) -> uint {
+randi_default :: proc(max: uint) -> uint {
 	return rand.uint_max(max, internal.rng)
 }
 
-rand_range :: proc(min, max: int) -> int {
+randi_range :: proc(min, max: int) -> int {
 	return rand.int_range(min, max, internal.rng)
 }
 
