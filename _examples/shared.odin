@@ -47,6 +47,7 @@ MapType :: enum {
 	Dungeon,
 	Caves,
 	Drunk_Walk,
+	BSP,
 }
 
 fov_radius          : = 20
@@ -124,11 +125,12 @@ init_map :: proc(w, h: int, gmap: ^GameMap, player: ^Entity = nil) {
 	gmap.mapgen = mapgen
 
 	pos: ork.Vec2
-	switch gmap.map_type {
+	#partial switch gmap.map_type {
 		case .Empty:      pos = ork.mapgen_create_empty(mapgen, 0.99)
 		case .Dungeon:    pos = ork.mapgen_create_simple_dungeon(mapgen, 15, 5, 10)
 		case .Caves:      pos = ork.mapgen_create_caves(mapgen, 0.6, 4, 3, 6)
 		case .Drunk_Walk: pos = ork.mapgen_create_drunk_caves(mapgen, 10, 200)
+		case .BSP:        pos = ork.mapgen_create_bsp_dungeon(mapgen, {50, 50, 10, 11, 7, 8})
 	}
 
 	if player != nil {
