@@ -882,48 +882,41 @@ camera_get_visible_world_rect :: proc(cam: ^Camera) -> Rect {
 
 
 // Convert world-space coordinates to screen-space coordinates
-camera_to_screen :: proc {
-	camera_to_screen_xy,
-	camera_to_screen_vec,
+camera_to_screen :: proc(cam: ^Camera, #any_int x, y: int) -> (int, int) {
+	sx := x - cam._pos.x + cam._viewport.x
+	sy := y - cam._pos.y + cam._viewport.y
+	return sx, sy
 }
 
-camera_to_screen_xy :: proc(cam: ^Camera, #any_int x, y: int) -> Vec2 {
-	return camera_to_screen_vec(cam, {x, y})
+// Convert world-space coordinates to screen-space coordinates. Returns a Vec2.
+camera_to_screen_v :: proc(cam: ^Camera, #any_int x, y: int) -> Vec2 {
+	sx, sy := camera_to_screen(cam, x, y)
+	return {sx, sy}
 }
 
-camera_to_screen_vec :: proc(cam: ^Camera, pos: Vec2) -> Vec2 {
-	return Vec2{
-		pos.x - cam._pos.x + cam._viewport.x,
-		pos.y - cam._pos.y + cam._viewport.y
-	}
-}
 
 // Convert world-space 'x' to screen-space 'x'
 camera_to_screen_x :: proc(cam: ^Camera, mx: int) -> int {
 	return mx - cam._pos.x + cam._viewport.x
 }
 
-// Convert world-space 'y' to screen-space 'y'
+// Convert world-space 'y' to screen-space 'y'.
 camera_to_screen_y :: proc(cam: ^Camera, my: int) -> int {
 	return my - cam._pos.y + cam._viewport.y
 }
 
 
-// Convert screen-space coordinates to world-space coordinates
-camera_to_world :: proc {
-	camera_to_world_xy,
-	camera_to_world_vec,
+// Convert screen-space coordinates to world-space coordinates.
+camera_to_world :: proc(cam: ^Camera, #any_int x, y: int) -> (int, int) {
+	wx := cam._pos.x - cam._viewport.x + x
+	wy := cam._pos.y - cam._viewport.y + y
+	return x, y
 }
 
-camera_to_world_xy :: proc(cam: ^Camera, #any_int x, y: int) -> Vec2 {
-	return camera_to_world_vec(cam, {x, y})
-}
-
-camera_to_world_vec :: proc(cam: ^Camera, pos: Vec2) -> Vec2 {
-	return Vec2{
-		cam._pos.x - cam._viewport.x + pos.x,
-		cam._pos.y - cam._viewport.y + pos.y
-	}
+// Convert screen-space coordinates to world-space coordinates. Returns a Vec2.
+camera_to_world_vec :: proc(cam: ^Camera, #any_int x, y: int) -> Vec2 {
+	wx, wy := camera_to_world(cam, x, y)
+	return {x, y}
 }
 
 // Convert screen-space 'x' to world-space 'x'

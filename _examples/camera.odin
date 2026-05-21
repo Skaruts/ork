@@ -29,8 +29,7 @@ _draw_entities :: proc(console: ^ork.Console, gmap: ^GameMap, \
 		x, y := e.pos.x, e.pos.y
 
 		// TODO: the entire API is inconsistent in how it handles coordinates
-		sp := ork.camera_to_screen(cam, x, y)
-		sx, sy := sp.x, sp.y
+		sx, sy := ork.camera_to_screen(cam, x, y)
 		if !ork.camera_is_in_viewport(cam, sx, sy) do continue
 
 		in_fov := ork.fov_is_visible(gmap.fovmap, x, y)
