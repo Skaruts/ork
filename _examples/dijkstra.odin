@@ -81,7 +81,7 @@ _draw_dists :: proc() {
 }
 
 _recompute_dijkstra :: proc() {
-	ork.dijkstra_set_root(dij, player.pos.x, player.pos.y, 0) // distance value can be negative
+	ork.dijkstra_set_root(dij, player.x, player.y, 0) // distance value can be negative
 	ork.dijkstra_compute_map(dij)
 }
 
@@ -172,14 +172,14 @@ dij_example_update :: proc() {
 	_recompute_dijkstra()
 	draw_tiles(&gmap)
 
-	ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
-	ork.draw_cell(ex_console, enemy.pos.x, enemy.pos.y, enemy.glyph, enemy.fg, enemy.bg)
+	ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
+	ork.draw_cell(ex_console, enemy.x, enemy.y, enemy.glyph, enemy.fg, enemy.bg)
 
 	if debug_draw_heat_map  do _draw_heatmap()
 	if debug_draw_distances do _draw_dists()
 
 	if debug_draw_path {
-		path := ork.dijkstra_compute_path(dij, enemy.pos.x, enemy.pos.y)
+		path := ork.dijkstra_compute_path(dij, enemy.x, enemy.y)
 		for p in path {
 			if p != enemy.pos {
 				if debug_draw_distances && debug_draw_heat_map {

@@ -128,7 +128,7 @@ fovs_example_update :: proc() {
 	ork.clear_cells(ex_console)
 	ork.fov_compute(gmap.fovmap, player.pos, fov_radius, curr_fov, fov_light_walls)
 	draw_tiles_fov(ex_console, &gmap)
-	ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
+	ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
 
 	player_moved = false
 	should_redraw = false

@@ -104,7 +104,7 @@ rexpaint_example_update :: proc() {
 	ork.begin_camera(cam)
 	{
 		draw_tiles_fov_cam(ex_console, &gmap, cam)
-		ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
+		ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
 	}
 	ork.end_camera()
 

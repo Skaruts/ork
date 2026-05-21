@@ -37,7 +37,7 @@ GameMap :: struct {
 }
 
 Entity :: struct {
-	pos    : ork.Vec2,
+	using pos : ork.Vec2,
 	glyph  : ork.Rune,
 	fg, bg : ork.Color,
 }

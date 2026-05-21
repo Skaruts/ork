@@ -26,7 +26,7 @@ _draw_entities :: proc(console: ^ork.Console, gmap: ^GameMap, \
 	// world position is visible.
 
 	for e in entities {
-		x, y := e.pos.x, e.pos.y
+		x, y := e.x, e.y
 
 		// TODO: the entire API is inconsistent in how it handles coordinates
 		sx, sy := ork.camera_to_screen(cam, x, y)
@@ -100,7 +100,7 @@ camera_example_update :: proc() {
 	ork.begin_camera(cam)
 	{
 		draw_tiles_fov_cam(ex_console, &gmap, cam)
-		ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
+		ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
 
 		_draw_entities(ex_console, &gmap, entities[:], cam)
 	}

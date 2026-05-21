@@ -92,8 +92,8 @@ astar_example_update :: proc() {
 
 	draw_tiles(&gmap)
 	draw_astar_path()
-	ork.draw_cell(ex_console, player.pos.x, player.pos.y, player.glyph, player.fg, player.bg)
-	ork.draw_cell(ex_console, enemy.pos.x, enemy.pos.y, enemy.glyph, enemy.fg, enemy.bg)
+	ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
+	ork.draw_cell(ex_console, enemy.x, enemy.y, enemy.glyph, enemy.fg, enemy.bg)
 
 	player_moved = false
 	should_redraw = false
