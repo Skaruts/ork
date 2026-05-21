@@ -298,6 +298,30 @@ mapgen_connect_rooms_directional :: proc(mgen: ^MapGen, horizontal: bool) {
 	mapgen_connect_rooms_sequential(mgen)
 }
 
+// makes sure all rooms have walls around them (in case they were added on top)
+// of previously generated caves, for example).
+mapgen_make_room_walls :: proc(mgen: ^MapGen) {
+	for room in mgen.rooms {
+		x, y, w, h := room.x-1, room.y-1, room.w+2, room.h+2
+		x2 := x+w
+		y2 := y+h
+
+		for i in x ..= x2 {
+			idx1 := i+y*mgen.w
+			idx2 := i+y2*mgen.w
+			mgen.cells[idx1] = mgen.wall_id
+			mgen.cells[idx2] = mgen.wall_id
+		}
+
+		for j in y+1 ..< y2 {
+			idx1 := x+j*mgen.w
+			idx2 := x2+j*mgen.w
+			mgen.cells[idx1] = mgen.wall_id
+			mgen.cells[idx2] = mgen.wall_id
+		}
+	}
+}
+
 
 mapgen_carve_points :: proc(mgen: ^MapGen, points: [dynamic]Vec2, floor_id: Maybe(int) = nil) {
 	_floor_id := mgen.floor_id
