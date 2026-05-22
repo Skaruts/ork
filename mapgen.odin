@@ -302,7 +302,7 @@ mapgen_connect_rooms_directional :: proc(mgen: ^MapGen, horizontal: bool) {
 // of previously generated caves, for example).
 mapgen_make_room_walls :: proc(mgen: ^MapGen) {
 	for room in mgen.rooms {
-		x, y, w, h := room.x-1, room.y-1, room.w+2, room.h+2
+		x, y, w, h := room.x-1, room.y-1, room.w+1, room.h+1
 		x2 := x+w
 		y2 := y+h
 
