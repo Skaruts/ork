@@ -196,7 +196,7 @@ mapgen_fill_area :: proc(mgen: ^MapGen, x, y, w, h: int, chance := 1.0, loc := #
 
 	for j in t ..< b {
 		for i in l ..< r {
-			if chance == 1 || rand.float64() < chance {
+			if chance == 1 || randf() < chance {
 				mgen.cells[i+j*mgen.w] = mgen.floor_id
 			} else {
 				mgen.cells[i+j*mgen.w] = mgen.wall_id
