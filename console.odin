@@ -559,10 +559,10 @@ draw_text :: proc(c: ^Console, #any_int x, y: int, text: string,
 		if !camera_is_in_viewport_y(cam, y) do return
 	}
 
-	if y < min_x || y >= max_y do return
+	if y < min_x || y > max_y do return
 
 	length := strings.rune_count(text)
-	if x + length < min_x || x >= max_x do return
+	if x + length < min_x || x > max_x do return
 
 	runes := utf8.string_to_runes(text, context.temp_allocator)
 
@@ -570,7 +570,7 @@ draw_text :: proc(c: ^Console, #any_int x, y: int, text: string,
 		xi := x + i
 		if cam != nil && !camera_is_in_viewport_x(cam, xi) do continue
 		if xi < min_x do continue // probably redundant
-		if xi >= max_x do break
+		if xi > max_x do break
 		idx := xi+y*c.w
 
 		// TODO: layout shouldn't be hardcoded
