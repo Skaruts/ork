@@ -1,6 +1,0 @@
-[submodule "karl2d"]
-	path = libs/karl2d
-	url = https://github.com/karl-zylinski/karl2d
-[submodule "rexpaint_odin"]
-	path = libs/rexpaint_odin
-	url = https://github.com/Skaruts/rexpaint_odin
