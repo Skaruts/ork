@@ -320,6 +320,7 @@ get_fps_smoothed :: proc() -> int {
 set_window_title :: proc(title: string) {
 	// TODO
 	internal.title = title
+	k2.set_window_title(title)
 }
 
 // (NIY) Enable or disable v-sync.

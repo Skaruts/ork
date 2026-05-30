@@ -34,7 +34,7 @@ ex_console : ^ork.Console
 fonts      : [4]^ork.Font
 curr_font  : = len(fonts)-1
 
-
+WINDOW_TITLE :: "Ork Examples"
 
 main :: proc() {
 	ork.start(init, tick, quit)
@@ -43,6 +43,7 @@ main :: proc() {
 
 init :: proc() {
 	ork.set_panic_key(.None)
+	ork.set_window_title(WINDOW_TITLE)
 
 	// You can bind input actions to keys/combos, and you can use the same key
 	// on multiple actions. E.g. for diagonal movement with numpad keys:
