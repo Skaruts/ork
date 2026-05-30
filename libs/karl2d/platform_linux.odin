@@ -22,13 +22,17 @@ PLATFORM_LINUX :: Platform_Interface {
 	shutdown = linux_shutdown,
 	get_window_render_glue = linux_get_window_render_glue,
 	get_events = linux_get_events,
+	set_window_title = linux_set_window_title,
 	set_screen_size = set_screen_size,
 	get_screen_width = linux_get_screen_width,
 	get_screen_height = linux_get_screen_height,
 	set_window_position = linux_set_window_position,
 	get_window_scale = linux_get_window_scale,
 	set_window_mode = linux_set_window_mode,
-	set_cursor_visible = linux_set_cursor_visible,
+	set_cursor_hidden = linux_set_cursor_hidden,
+	is_cursor_hidden = linux_is_cursor_hidden,
+	set_cursor_locked = linux_set_cursor_locked,
+	is_cursor_locked = linux_is_cursor_locked,
 	is_gamepad_active = linux_is_gamepad_active,
 	get_gamepad_axis = linux_get_gamepad_axis,
 	set_gamepad_vibration = linux_set_gamepad_vibration,
@@ -162,6 +166,10 @@ linux_get_screen_height :: proc() -> int {
 	return s.win.get_screen_height()
 }
 
+linux_set_window_title :: proc(title: string) {
+	s.win.set_title(title)
+}
+
 linux_set_window_position :: proc(x: int, y: int) {
 	s.win.set_position(x, y)
 }
@@ -214,7 +222,7 @@ linux_create_connected_gamepads :: proc() {
 }
 
 linux_create_gamepad :: proc(device_path: string) -> (Linux_Gamepad, bool) {
-	fd, err := os.open(device_path, { .Read, .Non_Blocking })
+	fd, err := os.open(device_path, { .Read, .Write, .Non_Blocking })
 
 	if err != nil {
 		log.errorf("Failed creating gamepad for device %v", device_path)
@@ -598,8 +606,20 @@ linux_set_window_mode :: proc(window_mode: Window_Mode) {
 	s.win.set_window_mode(window_mode)
 }
 
-linux_set_cursor_visible :: proc(visible: bool) {
-	s.win.set_cursor_visible(visible)
+linux_set_cursor_hidden :: proc(hidden: bool) {
+	s.win.set_cursor_hidden(hidden)
+}
+
+linux_is_cursor_hidden :: proc() -> bool {
+	return s.win.is_cursor_hidden()
+}
+
+linux_set_cursor_locked :: proc(locked: bool) {
+	s.win.set_cursor_locked(locked)
+}
+
+linux_is_cursor_locked :: proc() -> bool {
+	return s.win.is_cursor_locked()
 }
 
 Linux_State :: struct {
@@ -628,13 +648,17 @@ Linux_Window_Interface :: struct #all_or_none {
 	shutdown: proc(),
 	get_window_render_glue: proc() -> Window_Render_Glue,
 	get_events: proc(events: ^[dynamic]Event),
+	set_title: proc(title: string),
 	set_position: proc(x: int, y: int),
 	set_screen_size: proc(w, h: int),
 	get_screen_width: proc() -> int,
 	get_screen_height: proc() -> int,
 	get_window_scale: proc() -> f32,
 	set_window_mode: proc(window_mode: Window_Mode),
-	set_cursor_visible: proc(visible: bool),
+	set_cursor_hidden: proc(hidden: bool),
+	is_cursor_hidden: proc() -> bool,
+	set_cursor_locked: proc(locked: bool),
+	is_cursor_locked: proc() -> bool,
 
 	set_internal_state: proc(state: rawptr),
 }

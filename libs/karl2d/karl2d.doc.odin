@@ -135,6 +135,9 @@ get_screen_height :: proc() -> int
 // Gets the screen width and height as a 2D vector.
 get_screen_size :: proc() -> Vec2
 
+// Change the window title.
+set_window_title :: proc(title: string)
+
 // Moves the window.
 //
 // This does nothing for web builds.
@@ -150,9 +153,6 @@ get_window_scale :: proc() -> f32
 
 // Use to change between windowed mode, resizable windowed mode and fullscreen
 set_window_mode :: proc(window_mode: Window_Mode)
-
-// Hide or show the OS cursor.
-set_cursor_visible :: proc(visible: bool)
 
 // Flushes the current batch. This sends off everything to the GPU that has been queued in the
 // current batch. Normally, you do not need to do this manually. It is done automatically when these
@@ -235,6 +235,37 @@ get_mouse_position :: proc() -> Vec2
 
 // Returns how many pixels the mouse moved between the previous and the current frame.
 get_mouse_delta :: proc() -> Vec2
+
+// Hide or show the mouse cursor. The cursor may get shown again if the window loses focus.
+// Therefore, it's often best to use `is_cursor_hidden` to check the current status and use this
+// procedure to hide the cursor as needed.
+//
+// This call does not lock the cursor within the window, do that using a separate call to
+// `set_cursor_locked`.
+set_cursor_hidden :: proc(hidden: bool)
+
+// Returns true if the cursor is hidden. The cursor may get re-shown by the OS, for example when the
+// window loses focus. Therefore, this procedure may return false even though you've hidden the
+// cursor previously. It should always reflect the true hide-state of the cursor.
+is_cursor_hidden :: proc() -> bool
+
+// Locks the mouse cursor within the window. While the cursor is locked, you should no longer use
+// get_mouse_position, as it may have weird/static values. Instead, use get_mouse_delta to fetch how
+// much the mouse have been moved.
+//
+// On some platforms the cursor is just stuck at a specific point. On other platforms it may be
+// teleported back to the center of the window on each frame.
+//
+// This call does not hide the cursor, do that separately using `set_cursor_visible`.
+//
+// If the window loses focus, then the cursor may get unlocked. You can query the current lock
+// status using `is_cursor_locked`, which should take into account if the OS has unlocked it for you
+set_cursor_locked :: proc(locked: bool)
+
+// Returns true if the mouse cursor is currently locked. Note that the mouse can get unlocked by the
+// OS, even though you previously called `set_cursor_locked(true)`. Therefore, it's best to check
+// the current status using this procedure and then lock the mouse if needed.
+is_cursor_locked :: proc() -> bool
 
 // Returns true if a gamepad with the supplied index is connected. The parameter should be a value
 // between 0 and MAX_GAMEPADS.
@@ -407,6 +438,10 @@ load_texture_from_bytes :: proc(bytes: []u8, options: Load_Texture_Options = {})
 // This assumes that there is no header in the data. If your data has a header (you read the data
 // from a file on disk), then please use `load_texture_from_bytes` instead.
 load_texture_from_bytes_raw :: proc(bytes: []u8, width: int, height: int, format: Pixel_Format) -> Texture
+
+// Create a GPU texture from an image stored in RAM. There are currently no procedures to manipulate
+// the image. However, you can create an `Image` struct manually and fill out the data as needed.
+load_texture_from_image :: proc(image: Image) -> Texture
 
 // Get a rectangle that spans the whole texture. Coordinates will be (x, y) = (0, 0) and size
 // (w, h) = (texture_width, texture_height)
@@ -740,11 +775,25 @@ rotate :: proc(v: Vec2, angle_radians: f32) -> Vec2
 // FONTS //
 //-------//
 
-// Loads a font from disk and returns a handle that represents it.
-load_font_from_file :: proc(filename: string, options: Font_Options = {}) -> Font
+// Like `load_static_font_from_bytes` but reads a file from disk using a specified name.
+load_static_font_from_file :: proc(filename: string, font_size: f32, codepoints: []rune = {}, options: Font_Options = {}) -> Font
 
-// Loads a font from a block of memory and returns a handle that represents it.
-load_font_from_bytes :: proc(data: []u8, options: Font_Options = {}) -> Font
+// Load the TTF font contained in `data` and bake it into a texture. The characters in the texture
+// will be of of the specified `font_size`. If you do not specify a list of `codepoints`, then this
+// procedure defaults to using all codepoints between 32 to 127 (ASCII).
+load_static_font_from_bytes :: proc(
+	data: []byte,
+	font_size: f32,
+	codepoints: []rune = {},
+	options: Font_Options = {},
+) -> Font
+
+// Like `load_dynamic_font_from_bytes`, but reads a file from disk using a filename.
+load_dynamic_font_from_file :: proc(filename: string, options: Font_Options = {}) -> Font
+
+// Load a TTF font stored in `data` as a dynamic font. This means that an atlas will be dynamically
+// built as you draw characters using this font.
+load_dynamic_font_from_bytes :: proc(data: []u8, options: Font_Options = {}) -> Font
 
 // Destroy a font previously loaded using `load_font_from_file` or `load_font_from_bytes`.
 destroy_font :: proc(font: Font)
@@ -1014,6 +1063,14 @@ Texture_Filter :: enum {
 	Linear, // Smoothed texture scaling.
 }
 
+// An image kept in RAM, you can fill this out and pass it to `load_texture_from_image` in order
+// to transport it to the GPU.
+Image :: struct {
+	pixels: []Color,
+	width: int,
+	height: int,
+}
+
 Camera :: struct {
 	// Where the camera looks.
 	target: Vec2,
@@ -1158,12 +1215,34 @@ Font_Options :: struct {
 	filter: Texture_Filter,
 }
 
+// Supported font types:
+// - Static: A pre-baked font where you specify a range of characters that are baked into a texture.
+// - Dynamic: A font where an atlas is continuously updated as you need need new characters. This
+//            mode current uses fontstash.
+//
+// Future types (TODO):
+// - Slug: Upload the character bezier curves to the GPU and render the text on the GPU without the
+//         need for any atlas texture. This will be based on the "slug font algorithm" that was
+//         recently put into public domain.
+Font_Type :: enum {
+	Static,
+	Dynamic,
+}
+
 Font_Data :: struct {
 	atlas: Texture,
 	options: Font_Options,
 
-	// internal
-	fontstash_handle: int,
+	type: Font_Type,
+
+	// type == .Static
+	static_glyphs: []Font_Baked_Glyph,
+	static_glyph_ranges: []Font_Baked_Glyph_Range,
+	static_font_size: f32,
+	static_line_spacing: f32,
+
+	// type == .Dynamic
+	dynamic_fontstash_handle: int,
 }
 
 Handle :: hm.Handle64
@@ -1171,6 +1250,21 @@ Texture_Handle :: distinct Handle
 Render_Target_Handle :: distinct Handle
 Font :: distinct int
 DEFAULT_FONT_DATA :: #load("default_fonts/roboto.ttf")
+
+Font_Baked_Glyph_Range :: struct {
+	start_idx: int,
+	start: rune,
+	end: rune,
+}
+
+Font_Baked_Glyph :: struct {
+	value: rune,
+	// stbtt index, for faster lookup
+	index: int,
+	rect: Rect,
+	offset: Vec2,
+	advance: f32,
+}
 
 FONT_NONE :: Font(0)
 
@@ -1610,6 +1704,7 @@ Event :: union {
 	Event_Mouse_Wheel,
 	Event_Mouse_Button_Went_Down,
 	Event_Mouse_Button_Went_Up,
+	Event_Mouse_Teleported,
 	Event_Gamepad_Button_Went_Down,
 	Event_Gamepad_Button_Went_Up,
 	Event_Screen_Resize,
@@ -1645,6 +1740,12 @@ Event_Gamepad_Button_Went_Up :: struct {
 }
 
 Event_Close_Window_Requested :: struct {}
+
+// Used by mouse capturing to inform us that the cursor was teleported. This is like a mouse move,
+// but will not be used for calculating mouse delta movement.
+Event_Mouse_Teleported :: struct {
+	position: Vec2,
+}
 
 Event_Mouse_Move :: struct {
 	position: Vec2,
