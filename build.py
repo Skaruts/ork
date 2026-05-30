@@ -13,8 +13,8 @@ import sys
 VERSION  = 6
 
 CWD       = os.getcwd()
-CODE_PATH = "./_examples"
-OUT_DIR   = f"./_examples/bin"
+CODE_PATH = "./examples"
+OUT_DIR   = f"./examples/bin"
 EXE_NAME  = "ork_examples"
 DEBUGGER  = "remedybg"
 
