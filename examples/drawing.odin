@@ -6,7 +6,7 @@ import "core:fmt"
 import ork "../"  // Ork itself
 
 @(private="file") title := "Drawing Example (Ork)"
-@(private="file") smiley: ^ork.Image
+@(private="file") smiley: ork.Image
 
 
 drawing_example_quit :: proc() {

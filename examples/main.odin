@@ -42,15 +42,15 @@ main :: proc() {
 
 
 init :: proc() {
-	ork.set_panic_key(.None)
+	ork.set_exit_key(.Null)
 	ork.set_window_title(WINDOW_TITLE)
 
 	// You can bind input actions to keys/combos, and you can use the same key
 	// on multiple actions. E.g. for diagonal movement with numpad keys:
-	ork.add_binds( "move_left",  { .A, .Left,  .NP_4, .NP_7, .NP_1 } )
-	ork.add_binds( "move_right", { .D, .Right, .NP_6, .NP_9, .NP_3 } )
-	ork.add_binds( "move_up",    { .W, .Up,    .NP_8, .NP_7, .NP_9 } )
-	ork.add_binds( "move_down",  { .S, .Down,  .NP_2, .NP_1, .NP_3 } )
+	ork.add_binds( "move_left",  { .A, .Left,  .KP_4, .KP_7, .KP_1 } )
+	ork.add_binds( "move_right", { .D, .Right, .KP_6, .KP_9, .KP_3 } )
+	ork.add_binds( "move_up",    { .W, .Up,    .KP_8, .KP_7, .KP_9 } )
+	ork.add_binds( "move_down",  { .S, .Down,  .KP_2, .KP_1, .KP_3 } )
 
 	ork.add_binds("prev_font", { .Comma,  .Page_Up })
 	ork.add_binds("next_font", { .Period, .Page_Down })

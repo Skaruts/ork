@@ -4,8 +4,8 @@
 
 const vec3 BLACK = vec3(0);
 
-in vec2 frag_texcoord;
-out vec4 final_color;
+in vec2 fragTexCoord;
+out vec4 finalColor;
 
 
 uniform sampler2D font;     // the bitmap font image (e.g. cp437)
@@ -27,7 +27,7 @@ void main() {
 	vec2 canvas_size = console_size * cell_size;
 
 	// get the glyph value (stored in the red and green channels), and scale it to 0-255
-	vec4 glyph_col = texture(chr_tex, frag_texcoord);
+	vec4 glyph_col = texture(chr_tex, fragTexCoord);
 	float glyph = floor((glyph_col.r + glyph_col.g) * 255);
 	// if (testing) { glyph = 0; }
 	// get the respective glyph coords on the font, in pixels, normalized
@@ -38,7 +38,7 @@ void main() {
 
 	/* get the pixel we're currently at in the current tile, as an offset */
 	/* to add to the 'guv' */
-	vec2 ofs = mod(frag_texcoord * canvas_size, cell_size);
+	vec2 ofs = mod(fragTexCoord * canvas_size, cell_size);
 
 	// vec2 pixuv = guv+ofs;
 	vec2 pixuv = (guv+ofs) / ft_img_size;
@@ -49,22 +49,22 @@ void main() {
 
 	if (testing) {
 		if (glyph == 121) {
-			px_col = vec4(frag_texcoord, 1, 1);
+			px_col = vec4(fragTexCoord, 1, 1);
 		} else {
-			px_col = texture(font, frag_texcoord);
+			px_col = texture(font, fragTexCoord);
 		}
 	}
 
-	vec4 bg_col = texture(bg_tex, frag_texcoord);
-	vec4 fg_col = texture(fg_tex, frag_texcoord);
+	vec4 bg_col = texture(bg_tex, fragTexCoord);
+	vec4 fg_col = texture(fg_tex, fragTexCoord);
 
 	// If 'px_col' is black (excluding alpha), that means this pixel belongs
 	// to the space around the glyph, otherwise this pixel is from the glyph
 	// itself.
 	if (px_col.rgb == BLACK) {
-		final_color = bg_col;
+		finalColor = bg_col;
 	} else {
-		final_color = vec4(fg_col.rgb * px_col.rgb, fg_col.a);
-		// final_color = fg_col;
+		finalColor = vec4(fg_col.rgb * px_col.rgb, fg_col.a);
 	}
 }
+

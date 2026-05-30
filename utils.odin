@@ -7,7 +7,7 @@ import "core:math/rand"
 import "core:os"
 import stbi "vendor:stb/image"
 
-import k2 "libs/karl2d"
+import rl "vendor:raylib"
 
 
 DEG2RAD :: math.PI / 180
@@ -20,7 +20,7 @@ RAD2DEG :: 180 / math.PI
 
 *******************************************************************************/
 Vec2    :: [2]int
-Vec2f   :: k2.Vec2
+Vec2f   :: rl.Vector2
 
 VEC2_ZERO  :: Vec2{}
 VEC2_ONE   :: Vec2{ 1,  1}
@@ -101,7 +101,8 @@ get_random_direction :: proc(diagonals: bool) -> Vec2 {
 
 *******************************************************************************/
 Rect  :: struct {x, y, w, h: int}
-Rectf :: k2.Rect
+Rectf :: struct {x, y, w, h: f32}
+
 
 rectf_intersects :: proc(a, b: Rectf) -> bool {
 	return a.x < b.x+b.w && a.x+a.w > b.x \
@@ -181,12 +182,14 @@ randi_range :: proc(min, max: int) -> int {
 		Image
 
 *******************************************************************************/
-CHANNELS :: 4
+// CHANNELS :: 4
 
-Image :: struct {
-	w, h: int,
-	pixels: []byte,
-}
+Image :: rl.Image
+
+// Image :: struct {
+// 	w, h: int,
+// 	pixels: []byte,
+// }
 
 
 new_image :: proc {
@@ -195,128 +198,90 @@ new_image :: proc {
 	new_image_from_memory,
 }
 
-new_image_empty :: proc(w, h: int/*, color: Maybe(Color)*/) -> ^Image {
+new_image_empty :: proc(w, h: int, color: Color = {}) -> rl.Image {
 	img := _create_image_empty(w, h)
 	append(&internal.images, img)
 	return img
 }
 
-new_image_from_file :: proc(img_path: string) -> ^Image {
+new_image_from_file :: proc(img_path: string) -> rl.Image {
 	img := _create_image_from_file(img_path)
-	if img != nil {
+	if img.data != nil {
 		append(&internal.images, img)
 	}
 	return img
 }
 
-new_image_from_memory :: proc(bytes: []byte) -> ^Image {
+new_image_from_memory :: proc(bytes: []byte) -> rl.Image {
 	img := _create_image_from_memory(bytes)
 	append(&internal.images, img)
 	return img
 }
 
-delete_image :: proc(img: ^Image, loc := #caller_location) {
-	if img == nil do return
+delete_image :: proc(img: rl.Image, loc := #caller_location) {
+	if img.data == nil do return
 	idx, ok := _get_item_index(internal.images[:], img)
 	if ok do unordered_remove(&internal.images, idx)
-	if len(img.pixels) == 0 do return
-	_free_image(img)
+	// if len(img.pixels) == 0 do return
+	// _free_image(img)
 }
 
 
-image_blit_rect :: proc(src_img, dst_img: ^Image, src_rect: Rect, dst_pos: Vec2, tint: Color) {
-	w := src_rect.w
-	h := src_rect.h
-	p := dst_pos
 
-	for j in 0 ..< h {
-		for i in 0 ..< w {
-			x := src_rect.x + i
-			y := src_rect.y + j
-			dx := p.x + i
-			dy := p.y + j
-			if x < 0 || y < 0 || x >= src_img.w || y >= src_img.h do continue
-			if dx < 0 || dy < 0 || dx >= dst_img.w || dy >= dst_img.h do continue
-
-			sidx := (x+y*src_img.w)*CHANNELS
-			didx := (dx+dy*dst_img.w)*CHANNELS
-			dst_img.pixels[didx+0] = u8( (int(src_img.pixels[sidx+0]) * int(tint.r) ) / 255 )
-			dst_img.pixels[didx+1] = u8( (int(src_img.pixels[sidx+1]) * int(tint.g) ) / 255 )
-			dst_img.pixels[didx+2] = u8( (int(src_img.pixels[sidx+2]) * int(tint.b) ) / 255 )
-			dst_img.pixels[didx+3] = u8( (int(src_img.pixels[sidx+3]) * int(tint.a) ) / 255 )
-		}
-	}
-}
-
-
-// TODO: support optional color
-@private _create_image_empty :: proc(w, h: int/*, color: Maybe(Color)*/) -> ^Image {
-	img := new(Image)
-	img.w = w
-	img.h = h
-	img.pixels = make([]byte, w*h*CHANNELS)
+// // TODO: support optional color
+@private _create_image_empty :: proc(w, h: int, color: Color = {}) -> rl.Image {
+	img := rl.GenImageColor(i32(w), i32(h), color)
 	return img
 }
 
 
-@private _create_image_from_file :: proc(img_path: string) -> ^Image {
-	img := _load_image_file(img_path)
+@private _create_image_from_file :: proc(img_path: string) -> rl.Image {
+	content, err := os.read_entire_file(img_path, context.temp_allocator)
+	img := _create_image_from_memory(content)
 	return img
 }
 
-@private _create_image_from_memory :: proc(bytes: []byte) -> ^Image {
-	img := _load_image_memory(bytes)
+@private _create_image_from_memory :: proc(bytes: []byte) -> rl.Image {
+	// TODO: use stbi, because raylib requires specifying the file extension
+	img := rl.LoadImageFromMemory(".png", rawptr(raw_data(bytes)), i32(len(bytes)))
+
+
+	// img := new(Image)
+
+	// original_channels: i32
+	// w, h: i32
+	// pixels := stbi.load_from_memory(
+	//     raw_data(bytes), i32(len(bytes)),
+	//     &w, &h, &original_channels, CHANNELS
+	// )
+
+	// img.w = int(w)
+	// img.h = int(h)
+	// img.pixels = pixels[ : w*h*CHANNELS ]
+
 	return img
 }
 
-@private _free_image :: proc(img: ^Image, loc := #caller_location) {
-	stbi.image_free(raw_data(img.pixels))
-	free(img)
-}
+// @private _free_image :: proc(img: rl.Image, loc := #caller_location) {
+// 	stbi.image_free(raw_data(img.pixels))
+// 	free(img)
+// }
 
 
-@private _allocate_image_empty :: proc(w, h: int, allocator := context.allocator) -> ^Image {
-	img := new(Image)
-	img.w = w
-	img.h = h
-	img.pixels = make([]byte, w*h*CHANNELS, allocator)
-	return img
-}
+// @private _allocate_image_empty :: proc(w, h: int, allocator := context.allocator) -> rl.Image {
+// 	img := new(Image)
+// 	img.w = w
+// 	img.h = h
+// 	img.pixels = make([]byte, w*h*CHANNELS, allocator)
+// 	return img
+// }
 
-@private _deallocate_image :: proc(img: ^Image, allocator := context.allocator) {
-	delete(img.pixels, allocator)
-	free(img)
-}
+// @private _deallocate_image :: proc(img: rl.Image, allocator := context.allocator) {
+// 	delete(img.pixels, allocator)
+// 	free(img)
+// }
 
-@private _load_image_memory :: proc(bytes: []byte) -> ^Image {
-	img := new(Image)
 
-    original_channels: i32
-    w, h: i32
-    pixels := stbi.load_from_memory(
-	    raw_data(bytes), i32(len(bytes)),
-	    &w, &h, &original_channels, CHANNELS
-	)
-
-	img.w = int(w)
-	img.h = int(h)
-	img.pixels = pixels[ : w*h*CHANNELS ]
-    return img
-}
-
-@private _load_image_file :: proc(fullpath: string) -> (^Image, bool) #optional_ok {
-	img: ^Image
-    content, err := os.read_entire_file(fullpath, context.temp_allocator)
-    if err == nil {
-    	img = _load_image_memory(content)
-	    return img, true
-    }
-
-    // fmt.panicf()
-    __warning("couldn't find file '%s'", fullpath)
-
-    return img, false
-}
 
 
 

@@ -13,10 +13,10 @@ package ork
 
 import "base:intrinsics"
 import "core:math"
-import k2 "libs/karl2d"
+import rl "vendor:raylib"
 
 
-Color :: k2.Color
+Color :: rl.Color
 
 
 

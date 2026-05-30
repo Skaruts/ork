@@ -6,7 +6,7 @@ import "core:mem/virtual"
 import "core:unicode/utf8"
 import "core:strings"
 
-import k2 "libs/karl2d"
+import rl "vendor:raylib"
 
 
 
@@ -29,30 +29,16 @@ Cells :: struct {
 	bgs    : []Color,
 }
 
-Batch_Rendering :: struct {
-	verts    : []Vec2f,
-	uvs      : []Vec2f,
-	colors   : []Color,
-	font_uvs : []Vec2f,
-}
 
-Texture_Rendering :: struct {
-	rtex   : k2.Render_Texture,
-}
-
-Shader_Rendering :: struct {
-	shader      : k2.Shader,
-	shader_tex  : k2.Texture,
-	fg_pixels   : []u8,
-	char_pixels : []u8,
-	fg_tex      : k2.Texture,
-	char_tex    : k2.Texture,
-}
-
-Rendering :: union {
-	Batch_Rendering,
-	Texture_Rendering,
-	Shader_Rendering,
+RenderingData :: struct {
+	shader     : rl.Shader,
+	shader_tex : rl.Texture,
+	fg_img     : rl.Image,
+	char_img   : rl.Image,
+	fg_tex     : rl.Texture,
+	char_tex   : rl.Texture,
+	grid_size  : rl.Vector2,
+	font_size  : rl.Vector2,
 }
 
 Console :: struct {
@@ -73,11 +59,11 @@ Console :: struct {
 	_new_cells      : Cells,
 	_cells          : Cells,
 
-	_rendering      : Rendering,
+	_rendering      : RenderingData,
 
-	_bg_pixels      : []u8,
-	_bg_tex         : k2.Texture,
-	_main_rtex      : k2.Render_Texture,
+	_bg_img         : rl.Image,
+	_bg_tex         : rl.Texture,
+	_main_rtex      : rl.RenderTexture,
 }
 
 
@@ -145,9 +131,7 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 		make([]Color, w*h, c._allocator),
 	}
 
-	// c._rendering = Texture_Rendering{}  // slow af
-	// c._rendering = Batch_Rendering{}    // slow af
-	c._rendering = Shader_Rendering{}      // fast af
+	c._rendering = RenderingData{}
 
 	for i in 0 ..< w*h {
 		c._new_cells.glyphs[i] = DEF_GLYPH
@@ -162,8 +146,8 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	if _cw, ok := cw_ovr.?; ok do c._cw = _cw
 	if _ch, ok := ch_ovr.?; ok do c._ch = _ch
 
-	c._bg_tex    = k2.create_texture(c.w, c.h, .RGBA_8_Norm)
-	c._bg_pixels = make([]u8, c.w*c.h*CHANNELS, c._allocator)
+	c._bg_img = rl.GenImageColor(i32(c.w), i32(c.h), {})
+	c._bg_tex = rl.LoadTextureFromImage(c._bg_img)
 
 	_reset_console(c, false)
 	return c
@@ -176,14 +160,10 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	virtual.arena_destroy(&c._arena)
 	virtual.arena_destroy(&c._rend_arena)
 
-	k2.destroy_texture(c._bg_tex)
-	k2.destroy_render_texture(c._main_rtex)
+	rl.UnloadTexture(c._bg_tex)
+	rl.UnloadRenderTexture(c._main_rtex)
 
-	switch &rend in c._rendering {
-		case Texture_Rendering: _destroy_rtex_rendering(c, &rend)
-		case Batch_Rendering:   _destroy_batch_rendering(c, &rend)
-		case Shader_Rendering:  _destroy_shader_rendering(c, &rend)
-	}
+	_console_destroy_shader_rendering(c, &c._rendering)
 	free(c)
 }
 
@@ -199,22 +179,10 @@ delete_console :: proc(c: ^Console, loc := #caller_location) {
 	}
 
 	cw, ch := get_cell_size(c)
-	k2.destroy_render_texture(c._main_rtex)
-	c._main_rtex = k2.create_render_texture(c.w*cw, c.h*ch)
+	rl.UnloadRenderTexture(c._main_rtex)
+	c._main_rtex = rl.LoadRenderTexture(i32(c.w*cw), i32(c.h*ch))
 
-
-
-	switch &rend in c._rendering {
-		case Texture_Rendering:
-			_destroy_rtex_rendering(c, &c._rendering.(Texture_Rendering))
-			_init_rtex_rendering(c,   &c._rendering.(Texture_Rendering), is_reset)
-		case Batch_Rendering:
-			_destroy_batch_rendering(c, &c._rendering.(Batch_Rendering))
-			_init_batch_rendering(c,  &c._rendering.(Batch_Rendering), is_reset)
-		case Shader_Rendering:
-			_destroy_shader_rendering(c, &c._rendering.(Shader_Rendering))
-			_init_shader_rendering(c, &c._rendering.(Shader_Rendering), is_reset)
-	}
+	_console_init_shader_rendering(c, &c._rendering, is_reset)
 }
 
 
@@ -230,11 +198,7 @@ _update :: proc(c: ^Console) {
 	if c._is_updated do return
 	c._is_updated = true
 
-	switch &rend in c._rendering {
-		case Texture_Rendering:  _update_rtex_rendering(c, &rend)
-		case Batch_Rendering:    _update_batch_rendering(c, &rend)
-		case Shader_Rendering:   _update_shader_rendering(c, &rend)
-	}
+	_console_update_shader_rendering(c, &c._rendering)
 
 	// fmt.printfln("update in %d", time.tick_since(t1))
 }
@@ -244,22 +208,17 @@ _update :: proc(c: ^Console) {
 render :: proc(c: ^Console) {
 	if !c._is_updated do _update(c)
 
-	k2.set_render_texture(c._main_rtex)
+	rl.BeginTextureMode(c._main_rtex)
 	{
-		k2.clear({16, 0, 0, 1})
-
-		switch &rend in c._rendering {
-			case Texture_Rendering: _render_rtex_rendering(c, &rend)
-			case Batch_Rendering:   _render_batch_rendering(c, &rend)
-			case Shader_Rendering:  _render_shader_rendering(c, &rend)
-		}
+		rl.ClearBackground({16, 0, 0, 1})
+		_console_render_shader(c, &c._rendering)
 	}
-	k2.set_render_texture(nil)
+	rl.EndTextureMode()
 
 	cw, ch := get_cell_size(c)
-	src := k2.get_texture_rect(c._main_rtex.texture)
-	dst := Rectf{f32(c.x*cw), f32(c.y*ch), f32(c.w*cw), f32(c.h*ch)}
-	k2.draw_texture_fit(c._main_rtex.texture, src, dst, {}, 0, c.tint)
+	src := rl.Rectangle{0, 0, f32(c._main_rtex.texture.width), -f32(c._main_rtex.texture.height)}
+	dst := rl.Rectangle{f32(c.x*cw), f32(c.y*ch), f32(c.w*cw), f32(c.h*ch)}
+	rl.DrawTexturePro(c._main_rtex.texture, src, dst, {}, 0, c.tint)
 
 	c._is_updated = false // reset
 }
@@ -679,20 +638,20 @@ draw_circle_index :: proc(c: ^Console, filled: bool, #any_int x, y, r: int,
 
 
 // TODO: this should be part of the Image API
-@private _image_get_pixel :: proc(img: ^Image, x, y: int) -> (Color, bool) #optional_ok {
-	if x < 0 || x >= img.w || y < 0 || y >= img.h {
-		return {}, false
-	}
+// @private _image_get_pixel :: proc(img: rl.Image, x, y: int) -> (Color, bool) #optional_ok {
+// 	if x < 0 || x >= img.width || y < 0 || y >= img.height {
+// 		return {}, false
+// 	}
 
-	idx := (x+y*img.w)*CHANNELS
-	c := Color {
-		img.pixels[idx+0],
-		img.pixels[idx+1],
-		img.pixels[idx+2],
-		img.pixels[idx+3],
-	}
-	return c, true
-}
+// 	idx := (x+y*img.width)*CHANNELS
+// 	c := Color {
+// 		img.pixels[idx+0],
+// 		img.pixels[idx+1],
+// 		img.pixels[idx+2],
+// 		img.pixels[idx+3],
+// 	}
+// 	return c, true
+// }
 
 
 // draw `image` to the console, using a glyph and a foreground color.
@@ -705,7 +664,7 @@ draw_image :: proc{
 // draw `image` to the console, using a glyph and a foreground color,
 // where glyph is a rune.
 draw_image_fg_rune :: proc(c: ^Console, #any_int x, y: int, glyph: Rune,
-                        image: ^Image, key_color: Maybe(Color) = nil
+                        image: rl.Image, key_color: Maybe(Color) = nil
                     ) {
 	draw_image_fg_index(c, x, y, console_char_to_index(c, glyph), image, key_color)
 }
@@ -713,12 +672,12 @@ draw_image_fg_rune :: proc(c: ^Console, #any_int x, y: int, glyph: Rune,
 // draw `image` to the console, using a glyph and a foreground color,
 // where glyph is an index.
 draw_image_fg_index :: proc(c: ^Console, #any_int x, y: int,
-                        glyph: Maybe(Index)=nil, image: ^Image,
+                        glyph: Maybe(Index)=nil, image: rl.Image,
                         key_color: Maybe(Color) = nil
                     ) {
 	cam := internal.curr_camera
 	x, y, in_view := _transform_position_to_camera(x, y)
-	w, h := image.w, image.h
+	w, h := int(image.width), int(image.height)
 	if !is_rect_in_bounds(c, x, y, x+w-1, y+h-1) do return
 
 	l, t, r, b := _get_clipping_bounds(c, x, y, w, h)
@@ -730,8 +689,7 @@ draw_image_fg_index :: proc(c: ^Console, #any_int x, y: int,
 			if cam != nil && !camera_is_in_viewport(cam, cx, cy) do continue
 			if cx < l || cy < t || cx >= r || cy >= b do continue
 
-			pix, ok := _image_get_pixel(image, i, j)
-			if !ok do continue
+			pix := rl.GetImageColor(image, i32(i), i32(j))
 
 			if key_color == nil || pix != key_color {
 				idx := cx+cy*c.w
@@ -743,10 +701,10 @@ draw_image_fg_index :: proc(c: ^Console, #any_int x, y: int,
 }
 
 // draw `image` to the console, using only only a background color.
-draw_image_bg :: proc(c: ^Console, #any_int x, y: int, image: ^Image, key_color: Maybe(Color) = nil) {
+draw_image_bg :: proc(c: ^Console, #any_int x, y: int, image: rl.Image, key_color: Maybe(Color) = nil) {
 	cam := internal.curr_camera
 	x, y, in_view := _transform_position_to_camera(x, y)
-	w, h := image.w, image.h
+	w, h := int(image.width), int(image.height)
 	if !is_rect_in_bounds(c, x, y, x+w-1, y+h-1) do return
 
 	l, t, r, b := _get_clipping_bounds(c, x, y, w, h)
@@ -758,8 +716,7 @@ draw_image_bg :: proc(c: ^Console, #any_int x, y: int, image: ^Image, key_color:
 			if cam != nil && !camera_is_in_viewport(cam, cx, cy) do continue
 			if cx < l || cy < t || cx >= r || cy >= b do continue
 
-			pix, ok := _image_get_pixel(image, i, j)
-			if !ok do continue
+			pix := rl.GetImageColor(image, i32(i), i32(j))
 
 			if key_color == nil || pix != key_color {
 				_set_bg(c, cx+cy*c.w, pix)
