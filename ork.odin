@@ -12,8 +12,6 @@ import "core:strings"
 import "base:intrinsics"
 
 import "core:slice"
-import "core:fmt"
-import "core:os"
 import "core:time"
 
 import rl "vendor:raylib"
@@ -279,11 +277,10 @@ start :: proc(init: proc(), tick: proc(), quit: proc() = proc() {}) {
 
 
 @private _destroy_all :: proc(array: ^[dynamic]$T,
-                 free_proc: proc(item: T, loc := #caller_location),
-                 loc := #caller_location
-            ) {
+                              free_proc: proc(item: T, loc := #caller_location),
+                              loc := #caller_location
+                             ) where intrinsics.type_is_comparable(T) {
 	for len(array) > 0 {
-		// free_proc(array[len(array)-1], loc)
 		free_proc(array[0], loc)
 	}
 	delete(array^)
