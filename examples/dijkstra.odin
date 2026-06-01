@@ -1,8 +1,11 @@
 #+feature dynamic-literals
 package examples
 
+
 import "core:math"
+
 import ork "../"  // Ork itself
+import "../libs/ui"
 
 
 @(private="file") gmap   : GameMap
@@ -87,13 +90,27 @@ _recompute_dijkstra :: proc() {
 
 
 @(private="file") _draw_ui :: proc() {
-	x, y := 1, ui_y
-	ui_separator_h(x, y, UI_WIDTH-3)
+	y := ui.next_y()
+	ui.container("Dijkstra", {0, y, UI_WIDTH+1, MAIN_GH-y}); {
+		y = 2
+		if ui.checkbox({1, y}, "Heat Map", &debug_draw_heat_map).value_changed {
+			should_redraw = true
+		}
+		ui.text({ui.next_x()+1, y}, "(N1)", UI_TEXT_HOTKEYS)
 
-	ui_header(x, y+2, "Dijkstra")
-	ui_text(x+1, y+4, "N1: heat map", UI_TEXT_COL)
-	ui_text(x+1, y+5, "N2: distances", UI_TEXT_COL)
-	ui_text(x+1, y+6, "N3: path", UI_TEXT_COL)
+		y = ui.next_y()
+		if ui.checkbox({1, y}, "Dists", &debug_draw_distances).value_changed {
+			should_redraw = true
+		}
+		ui.text({ui.next_x()+1, y}, "(N2)", UI_TEXT_HOTKEYS)
+
+		y = ui.next_y()
+		if ui.checkbox({1, y}, "Path", &debug_draw_path).value_changed {
+			should_redraw = true
+		}
+		ui.text({ui.next_x()+1, y}, "(N3)", UI_TEXT_HOTKEYS)
+	}
+	ui.end_container()
 }
 
 
@@ -128,6 +145,8 @@ dij_example_init :: proc() {
 
 
 dij_example_update :: proc() {
+	_draw_ui()
+
 	if !in_menu {
 		if      ork.mouse_down({.MouseLeft})  do paint_tile(&gmap, .Wall)
 		else if ork.mouse_down({.MouseRight}) do paint_tile(&gmap, .Floor)
@@ -199,7 +218,7 @@ dij_example_update :: proc() {
 
 
 dij_example_render :: proc() {
-	_draw_ui()
+
 	ork.render(ex_console)
 }
 

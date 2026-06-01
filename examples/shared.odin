@@ -1,7 +1,6 @@
 package examples
 
-import "core:strings"
-import "core:fmt"
+
 import ork "../"  // Ork itself
 
 
@@ -12,9 +11,9 @@ UI_WIDTH :: 18
 GW :: MAIN_GW - UI_WIDTH-1   // grid dimensions used by the examples
 GH :: MAIN_GH
 
-
 LINE_H :: ork.Index(196)  // Assuming cp437 is being used.
 LINE_V :: ork.Index(179)  // Index needs to be typed, or the drawing procs will take it as a rune.
+
 
 
 TileType :: enum { Floor, Wall, Water }
@@ -251,138 +250,3 @@ draw_tiles_fov_cam :: proc(console: ^ork.Console, gmap: ^GameMap, cam: ^ork.Came
 }
 
 
-
-/********************************************
-	Some UI helpers
-*/
-
-UI_SEP_COL            :: ork.GRAY1
-UI_HEADER_COL         :: ork.GREEN4
-UI_TEXT_COL           :: ork.GRAY6
-UI_TEXT_FADED_COL     :: ork.GRAY4
-UI_SELECTED_COL       :: ork.BLUE3
-UI_SELECTED_FADED_COL :: ork.GRAY2
-UI_DIGIT              :: ork.Color{150, 0, 255, 255}
-UI_TEXT_SELECTED_COL  :: ork.AMBER5
-UI_TEXT_PARENTESES    :: ork.GRAY1
-
-ui_y := 1
-
-
-ui_text :: proc(x, y: int, text: string, fg: ork.Color, bg: Maybe(ork.Color)=nil) {
-	ork.draw_text(ui_console, x, y, text, fg, bg)
-}
-
-ui_header :: proc(x, y: int, text: string) {
-	ork.draw_text(ui_console, x, y, text, UI_HEADER_COL)
-}
-
-ui_separator_v :: proc(x, y, length: int) {
-	ork.draw_line(ui_console, x, y, x, y+length, LINE_V, UI_SEP_COL)
-}
-
-ui_separator_h :: proc(x, y, length: int) {
-	ork.draw_line(ui_console, x, y, x+length, y, LINE_H, UI_SEP_COL)
-}
-
-
-ui_list :: proc(x, y, w, selected: int, items: []string, active: bool) {
-	for text, i in items {
-		fg := i == selected ? UI_TEXT_COL : UI_TEXT_FADED_COL
-		bg := active \
-			? i == selected ? UI_SELECTED_COL       : ork.BLACK \
-			: i == selected ? UI_SELECTED_FADED_COL : ork.BLACK
-
-		yi := y+i
-		ork.draw_line(ui_console, x, yi, w, yi, nil, nil, bg)
-		ork.draw_text(ui_console, x+1, yi, text, fg)
-	}
-}
-
-
-ui_selector :: proc(x, y, selected_idx: int, options: []string) {
-	for opt_name, i in options {
-		fg := UI_TEXT_FADED_COL
-
-		if i == selected_idx {
-			fg = UI_TEXT_SELECTED_COL
-			ork.draw_cell(ui_console, x, y+i, ork.Index(16), UI_TEXT_SELECTED_COL, ork.BLACK)
-		}
-
-		ork.draw_text(ui_console, x+2, y+i, opt_name, fg, ork.BLACK)
-	}
-}
-
-ui_is_under_mouse :: proc(x, y, w, h: int) -> bool {
-	mp := ork.get_mouse_position(ui_console)
-	return mp.x >= x && mp.x < x+w \
-	    && mp.y >= y && mp.y < y+h
-}
-
-ui_icon_button :: proc(x, y: int, icon: ork.Index) -> bool {
-	hovered := ui_is_under_mouse(x, y, 1, 1)
-	pressed := hovered && ork.mouse_down({.MouseLeft})
-
-	fg := ork.GRAY4
-	if      pressed do fg = ork.GRAY8
-	else if hovered do fg = ork.GRAY6
-	ork.draw_cell(ui_console, x, y, icon, fg)
-
-	return pressed
-}
-
-ui_spinner :: proc(x, y, w: int, text: string, value: ^int, lo, hi, step: int) -> bool {
-	old_value := value^
-	tlen := ork.string_len(text)
-
-	// max width of digits in runes
-	nw := max(4, ork.string_len( fmt.tprintf("%d", lo < 0 ? lo : hi) ))
-
-	rb_x := x+w
-	nx   := x+w-nw
-	lb_x := nx-1
-
-	lpressed := ui_icon_button(lb_x, y, ork.Index(17))
-	rpressed := ui_icon_button(rb_x, y, ork.Index(16))
-	repeat   := (lpressed || rpressed) && ork.mouse_repeat({.MouseLeft})
-
-	if repeat {
-		if lpressed do value^ = max(lo, value^-step)
-		if rpressed do value^ = min(hi, value^+step)
-	}
-
-	ork.draw_text(ui_console, x, y, text, UI_TEXT_COL)
-
-	digit_text := strings.right_justify(fmt.tprintf("%d", value^), nw, " ", context.temp_allocator)
-	ork.draw_text(ui_console, nx, y, digit_text, UI_DIGIT)
-
-	return value^ != old_value
-}
-
-ui_spinnerf :: proc(x, y, w: int, text: string, value: ^f32, lo, hi, step: f32) -> bool {
-	old_value := value^
-	tlen := ork.string_len(text)
-
-	// max width of digits in runes
-	nw := max(4, ork.string_len( fmt.tprintf("%.2f", lo < 0 ? lo : hi) ))
-
-	rb_x := x+w
-	nx   := x+w-nw
-	lb_x := nx-1
-
-	lpressed := ui_icon_button(lb_x, y, ork.Index(17))
-	rpressed := ui_icon_button(rb_x, y, ork.Index(16))
-	repeat := (lpressed || rpressed) && ork.mouse_repeat({.MouseLeft})
-
-	if repeat {
-		if lpressed do value^ = max(lo, value^-step)
-		if rpressed do value^ = min(hi, value^+step)
-	}
-
-	ork.draw_text(ui_console, x, y, text, UI_TEXT_COL)
-
-	digit_text := strings.right_justify(fmt.tprintf("%.2f", value^), nw, " ", context.temp_allocator)
-	ork.draw_text(ui_console, nx, y, digit_text, UI_DIGIT)
-
-	return value^ != old_value
-}

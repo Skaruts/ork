@@ -4,6 +4,7 @@ import "core:math"
 import "core:fmt"
 
 import ork "../"  // Ork itself
+import "../libs/ui"
 
 
 @(private="file") title := "FOV Example (Ork)"
@@ -11,6 +12,7 @@ import ork "../"  // Ork itself
 
 @(private="file") player := Entity { {}, '@', ork.AMBER7, ork.BLACK }
 
+@(private="file") MAX_FOV_RANGE :: 100
 @(private="file") fov_names : [len(ork.FovType)]string
 @(private="file") curr_fov  := ork.FovType.Restrictive
 
@@ -19,20 +21,26 @@ import ork "../"  // Ork itself
 @(private="file") theme := 0
 
 
-
 @(private="file") _draw_ui :: proc() {
-	x, y := 1, ui_y
-	ui_separator_h(x, y, UI_WIDTH-3)
+	y := ui.next_y()
 
-	ui_header(x, y+2, "FOV")
-	ui_text(x+4, y+2, "(home/end)", UI_TEXT_PARENTESES)
-	ui_selector(x, y+4, int(curr_fov), fov_names[:])
+	ui.container("FOV", {0, y, UI_WIDTH+1, MAIN_GH-y}); {
+		y = 2
+		ui.text({1, y}, "FOVs", ork.GREEN4)
+		ui.text({ui.next_x()+1, y}, "(home/end)", UI_TEXT_HOTKEYS)
 
-	y += 9
-	ui_header(x, y, "Vis")
-	ui_text(x+4, y, "(ins/del)", UI_TEXT_PARENTESES)
-	ui_text(x+1, y+2, "radius:", UI_TEXT_COL)
-	ui_text(x+9, y+2, fmt.tprintf("%d", fov_radius), UI_DIGIT)
+		ui_selector({2, ui.next_y(2)}, int(curr_fov), fov_names[:])
+
+		y = ui.next_y(2)
+		ui.text({1, y}, "Vis", ork.GREEN4)
+		ui.text({ui.next_x()+1, y}, "(ins/del)", UI_TEXT_HOTKEYS)
+
+		radius := fov_radius
+		if ui.spinner({2, ui.next_y(2)}, 3, "Radius", &radius, 1, MAX_FOV_RANGE, 1).value_changed {
+			set_fov_range(radius - fov_radius)
+		}
+	}
+	ui.end_container()
 }
 
 
@@ -45,7 +53,7 @@ switch_fov :: proc(dir: int) {
 
 set_fov_range :: proc(dir: int) {
 	if dir == 0 do return
-	fov_radius = math.clamp(fov_radius+dir, 1, 80)
+	fov_radius = math.clamp(fov_radius+dir, 1, MAX_FOV_RANGE)
 	should_redraw = true
 }
 
@@ -108,6 +116,7 @@ _handle_input :: proc() {
 
 
 fovs_example_update :: proc() {
+	_draw_ui()
 
 	if !in_menu {
 		_handle_input()
@@ -131,12 +140,11 @@ fovs_example_update :: proc() {
 	ork.draw_cell(ex_console, player.x, player.y, player.glyph, player.fg, player.bg)
 
 	player_moved = false
-	should_redraw = false
 }
 
 
 fovs_example_render :: proc() {
-	_draw_ui()
+
 
 	ork.render(ex_console)
 

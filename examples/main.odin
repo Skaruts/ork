@@ -6,6 +6,7 @@ import "core:math"
 import "core:slice"
 
 import ork "../"  // Ork itself
+import "../libs/ui"
 
 
 ProcGroup :: struct {
@@ -35,6 +36,12 @@ fonts      : [4]^ork.Font
 curr_font  : = len(fonts)-1
 
 WINDOW_TITLE :: "Ork Examples"
+
+List_Normal  :: ui.Style_Count + 1
+List_Hovered :: ui.Style_Count + 2
+List_Pressed :: ui.Style_Count + 3
+
+
 
 main :: proc() {
 	ork.start(init, tick, quit)
@@ -71,6 +78,13 @@ init :: proc() {
 	// of its own cell size on the screen.
 	ex_console.x = UI_WIDTH+1
 
+	// provide the ui with a console
+	ui.init(ui_console)
+
+	// set some custom ui colors
+	ui.theme.colors[List_Normal]  = { ork.GRAY5, ork.GREY1 }
+	ui.theme.colors[List_Hovered] = { ork.GRAY6, ork.GREY3 }
+	ui.theme.colors[List_Pressed] = { ork.GRAY8, ork.BLUE4 }
 
 	ks, _ := slice.map_keys(examples)
 	keys = ks
@@ -82,6 +96,8 @@ init :: proc() {
 
 
 tick :: proc() {
+	ui.begin_frame()
+
 	if ork.action_pressed("next_font") do next_font()
 	if ork.action_pressed("prev_font") do prev_font()
 
@@ -89,11 +105,14 @@ tick :: proc() {
 	tick_example()
 	should_redraw = false
 
-	ork.render(ui_console)
+	// the ui renders the ui_console internally
+	ui.end_frame()
 }
 
 
 quit :: proc() {
+	ui.close()
+
 	for key in keys {
 		examples[key].quit()
 	}
@@ -124,9 +143,9 @@ tick_example :: proc() {
 		}
 	}
 
-	if !in_menu || should_redraw || player_moved {
-		examples[keys[curr_example]].update()
-	}
+	// if !in_menu || should_redraw || player_moved {
+	examples[keys[curr_example]].update()
+	// }
 
 	examples[keys[curr_example]].render()
 }
@@ -151,28 +170,17 @@ tick_menu :: proc() {
 		}
 	}
 
-	ork.set_clipping_area(ui_console, ork.Rect{0, 0, UI_WIDTH+1, MAIN_GH})
-	{
-		ork.clear_cells(ui_console)
-		ui_separator_v(UI_WIDTH, 1, MAIN_GH-2)
-
-		ui_y = 1
-		y := ui_y
-		ui_header(1, y, "Examples")
-		ui_text(1, y+1, "(Enter/Escape)", UI_TEXT_PARENTESES)
-		ui_list(2, y+3, 12, curr_example, keys, in_menu)
-
-		y += len(keys)+4
-
-		ui_separator_h(1, y+1, UI_WIDTH-3)
-
-		y += 3
-		ui_header(1, y, "Font")
-		ui_text(1, y+1, "(pg_up/dn ,/.)", UI_TEXT_PARENTESES)
-		ui_text(2, y+3, fonts[curr_font].name, UI_TEXT_COL)
-
-		ui_y = y+6
+	ui.container("Examples", {0, 0, UI_WIDTH+1, 12}); {
+		ui.text({1, 1}, "(Enter/Escape)", UI_TEXT_HOTKEYS)
+		ui_list(ui.next_y(2), 12, curr_example, keys, in_menu)
 	}
-	ork.set_clipping_area(ui_console, nil)
+	ui.end_container()
+
+	nr := ui.next_row()
+	ui.container("Font", {nr.x, nr.y, UI_WIDTH+1, 6}); {
+		ui.text({1, 1}, "(pg_up/dn ,/.)", UI_TEXT_HOTKEYS)
+		ui.text({2, 3}, fonts[curr_font].name)
+	}
+	ui.end_container()
 }
 

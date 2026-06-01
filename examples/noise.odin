@@ -1,11 +1,14 @@
 #+feature dynamic-literals
 package examples
 
+
 import "core:time"
 import "core:math/noise"
 import "core:fmt"
 import "core:math"
+
 import ork "../"  // Ork itself
+import "../libs/ui"
 
 
 @(private="file") title      := "REXPaint Example (Ork)"
@@ -68,30 +71,59 @@ _generate_noise :: proc() {
 }
 
 @(private="file") _draw_ui :: proc() {
-	x, y := 1, ui_y
-	ui_separator_h(x, y, UI_WIDTH-3)
+	nr := ui.next_row()
 
-	y += 2
-	ui_header(x, y, "Noise")
+	ui.container("Noise", {nr.x, nr.y, UI_WIDTH+1, MAIN_GH-nr.y}); {
+		ui.text({1, 2}, "Params", ork.GREEN4)
 
-	y += 2
-	if ui_spinner( x+1, y,   14, "Scale",   &scale,       1, 200,    1) do _generate_noise()
-	if ui_spinner( x+1, y+1, 14, "Octaves", &octaves,     1,  16,    1) do _generate_noise()
-	if ui_spinnerf(x+1, y+2, 14, "Persist", &persistence, 0,   9, 0.05) do _generate_noise()
-	if ui_spinnerf(x+1, y+3, 14, "Lacunar", &lacunarity,  0,   9, 0.05) do _generate_noise()
+		y := ui.next_y(2)
+		if ui.spinner(  {2, y},      4, "Scale  ", &scale,       1, 200,    1).value_changed do _generate_noise()
+		if ui.spinner(  {2, ui.next_y()}, 4, "Octaves", &octaves,     1,  16,    1).value_changed do _generate_noise()
+		if ui.spinnerf( {2, ui.next_y()}, 4, "Persist", &persistence, 0,   9, 0.05).value_changed do _generate_noise()
+		if ui.spinnerf( {2, ui.next_y()}, 4, "Lacunar", &lacunarity,  0,   9, 0.05).value_changed do _generate_noise()
 
-	y += 5
-	ui_header(x, y, "Terrain")
+		y = ui.next_y(2)
+		ui.text({1, y}, "Terrain", ork.GREEN4)
 
-	y += 2
-	if ui_spinnerf(x+1, y,   14, "Snow",     &snow,     0, 1,        0.05) do _generate_noise()
-	if ui_spinnerf(x+1, y+1, 14, "Mountain", &mountain, 0, snow,     0.05) do _generate_noise()
-	if ui_spinnerf(x+1, y+2, 14, "Grass",    &grass,    0, mountain, 0.05) do _generate_noise()
-	if ui_spinnerf(x+1, y+3, 14, "Beach",    &beach,    0, grass,    0.05) do _generate_noise()
-	if ui_spinnerf(x+1, y+4, 14, "Water",    &water,    0, beach,    0.05) do _generate_noise()
+		y = ui.next_y(2)
+		if ui.spinnerf({2, y},      4, "Snow    ", &snow,     0, 1,        0.05).value_changed do _generate_noise()
+		if ui.spinnerf({2, ui.next_y()}, 4, "Mountain", &mountain, 0, snow,     0.05).value_changed do _generate_noise()
+		if ui.spinnerf({2, ui.next_y()}, 4, "Grass   ", &grass,    0, mountain, 0.05).value_changed do _generate_noise()
+		if ui.spinnerf({2, ui.next_y()}, 4, "Beach   ", &beach,    0, grass,    0.05).value_changed do _generate_noise()
+		if ui.spinnerf({2, ui.next_y()}, 4, "Water   ", &water,    0, beach,    0.05).value_changed do _generate_noise()
+
+	}
+	ui.end_container()
+
+
+
+
+	// x, y := 1, ui_y
+	// ui_separator_h(x, y, UI_WIDTH-3)
+
+	// y += 2
+	// ui_header(x, y, "Noise")
+
+	// y += 2
+	// if ui_spinner( x+1, y,   14, "Scale",   &scale,       1, 200,    1) do _generate_noise()
+	// if ui_spinner( x+1, y+1, 14, "Octaves", &octaves,     1,  16,    1) do _generate_noise()
+	// if ui_spinnerf(x+1, y+2, 14, "Persist", &persistence, 0,   9, 0.05) do _generate_noise()
+	// if ui_spinnerf(x+1, y+3, 14, "Lacunar", &lacunarity,  0,   9, 0.05) do _generate_noise()
+
+	// y += 5
+	// ui_header(x, y, "Terrain")
+
+	// y += 2
+	// if ui_spinnerf(x+1, y,   14, "Snow",     &snow,     0, 1,        0.05) do _generate_noise()
+	// if ui_spinnerf(x+1, y+1, 14, "Mountain", &mountain, 0, snow,     0.05) do _generate_noise()
+	// if ui_spinnerf(x+1, y+2, 14, "Grass",    &grass,    0, mountain, 0.05) do _generate_noise()
+	// if ui_spinnerf(x+1, y+3, 14, "Beach",    &beach,    0, grass,    0.05) do _generate_noise()
+	// if ui_spinnerf(x+1, y+4, 14, "Water",    &water,    0, beach,    0.05) do _generate_noise()
 }
 
 noise_example_update :: proc() {
+	_draw_ui()
+
 	if in_menu do return
 
 	if ork.key_pressed({.Space}) {
@@ -101,8 +133,6 @@ noise_example_update :: proc() {
 		_generate_noise()
 		should_redraw = true
 	}
-
-	_draw_ui()
 }
 
 
