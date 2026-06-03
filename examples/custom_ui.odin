@@ -9,8 +9,19 @@ UI_HEADER_COL         :: ork.GREEN4
 UI_TEXT_SELECTED_COL  :: ork.AMBER5
 UI_TEXT_HOTKEYS    :: ork.GRAY2
 
-
 // Anything Ork UI doesn't support can be created using its API
+
+List_Normal  :: ui.Style_Count + 1
+List_Hovered :: ui.Style_Count + 2
+List_Pressed :: ui.Style_Count + 3
+
+init_custom_ui :: proc() {
+	// set some custom ui colors
+	ui.theme.colors[List_Normal]  = { ork.GRAY5, ork.GREY1 }
+	ui.theme.colors[List_Hovered] = { ork.GRAY6, ork.GREY3 }
+	ui.theme.colors[List_Pressed] = { ork.GRAY8, ork.BLUE4 }
+}
+
 
 ui_list :: proc(pos: ork.Vec2, w, selected: int, items: []string, active: bool) {
 	if !active do ui.push_state(.Disabled)

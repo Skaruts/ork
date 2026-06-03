@@ -6,7 +6,7 @@ import "core:math"
 import "core:slice"
 
 import ork "../"  // Ork itself
-import "../libs/ui"
+import "../libs/ui" // Ork UI
 
 
 ProcGroup :: struct {
@@ -37,10 +37,6 @@ curr_font  : = len(fonts)-1
 
 WINDOW_TITLE :: "Ork Examples"
 
-List_Normal  :: ui.Style_Count + 1
-List_Hovered :: ui.Style_Count + 2
-List_Pressed :: ui.Style_Count + 3
-
 
 
 main :: proc() {
@@ -49,11 +45,14 @@ main :: proc() {
 
 
 init :: proc() {
+	// By default the exit key is Escape, but the examples need it
 	ork.set_exit_key(.Null)
+
+	// You can set a custom window title
 	ork.set_window_title(WINDOW_TITLE)
 
-	// You can bind input actions to keys/combos, and you can use the same key
-	// on multiple actions. E.g. for diagonal movement with numpad keys:
+	// You can bind input actions to keys/combos, and you can also use the
+	// same key on multiple actions. E.g. for diagonal movement with keypad keys:
 	ork.add_binds( "move_left",  { .A, .Left,  .KP_4, .KP_7, .KP_1 } )
 	ork.add_binds( "move_right", { .D, .Right, .KP_6, .KP_9, .KP_3 } )
 	ork.add_binds( "move_up",    { .W, .Up,    .KP_8, .KP_7, .KP_9 } )
@@ -62,8 +61,12 @@ init :: proc() {
 	ork.add_binds("prev_font", { .Comma,  .Page_Up })
 	ork.add_binds("next_font", { .Period, .Page_Down })
 
+	// If you need to add modifier keys (Ctrl, Shift, ALt), use this instead
+	ork.add_bind_mod("example mod combo", {.C, {.Left_Control}})
+
+
 	// The first parameter to `new_font` (`name`) can be ommited when not needed.
-	// In this case I give them names so I can display them in the UI.
+	// In this case we give them names so we can display them in the UI.
 	fonts = {
 		ork.new_font("cp437_8x8",   "assets/fonts/cp437_8x8.png"),
 		ork.new_font("cp437_12x12", "assets/fonts/cp437_12x12.png"),
@@ -71,21 +74,26 @@ init :: proc() {
 		ork.new_font("cp437_20x20", "assets/fonts/cp437_20x20.png"),
 	}
 
+	// At least one console must be created in `init`, as Ork determines the
+	// window size based on the first console that gets created (the main console).
 	ui_console = ork.new_console(MAIN_GW, MAIN_GH, fonts[curr_font])
 	ex_console = ork.new_console(GW, GH, fonts[curr_font])
+
+	// You can still set a different main console, if you need. Doing this
+	// outside `init` may resize the window, if the new console's cell size
+	// is different.
+	ork.set_main_console(ui_console)
 
 	// You can set the position of a console. This will move it by steps
 	// of its own cell size on the screen.
 	ex_console.x = UI_WIDTH+1
 
-	// provide the ui with a console
+	// The UI must be initialized, and provided with a console
 	ui.init(ui_console)
 
-	// set some custom ui colors
-	ui.theme.colors[List_Normal]  = { ork.GRAY5, ork.GREY1 }
-	ui.theme.colors[List_Hovered] = { ork.GRAY6, ork.GREY3 }
-	ui.theme.colors[List_Pressed] = { ork.GRAY8, ork.BLUE4 }
+	init_custom_ui()  // see custom_ui.odin
 
+	// This initializes each of the examples.
 	ks, _ := slice.map_keys(examples)
 	keys = ks
 	slice.sort(keys)
@@ -96,6 +104,7 @@ init :: proc() {
 
 
 tick :: proc() {
+	// We need to let the UI prepare for the new frame.
 	ui.begin_frame()
 
 	if ork.action_pressed("next_font") do next_font()
@@ -105,14 +114,17 @@ tick :: proc() {
 	tick_example()
 	should_redraw = false
 
-	// the ui renders the ui_console internally
+	// We also need to let the ui render and do internal updates.
+	// The ui renders the ui_console internally.
 	ui.end_frame()
 }
 
 
 quit :: proc() {
+	// When done, tell the UI it can clean up and close.
 	ui.close()
 
+	// This closes up each of the examples.
 	for key in keys {
 		examples[key].quit()
 	}
@@ -121,6 +133,8 @@ quit :: proc() {
 
 
 next_font :: proc() {
+	// When switching fonts, we must update all the consoles that
+	// need to be updated.
 	curr_font = int(math.wrap(f32(curr_font+1), f32(len(fonts))))
 	ork.set_font(ui_console, fonts[curr_font])
 	ork.set_font(ex_console, fonts[curr_font])

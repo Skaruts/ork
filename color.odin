@@ -1,5 +1,5 @@
 /*
-    A default assortment of colors
+    A predefined assortment of colors
 
     Most colors are borrowed from the default palette used in REXPaint.
     I made up the names as I did it, off the top of my head,
