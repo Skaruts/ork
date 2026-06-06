@@ -91,7 +91,7 @@ _recompute_dijkstra :: proc() {
 
 @(private="file") _draw_ui :: proc() {
 	y := ui.next_y()
-	ui.container("Dijkstra", {0, y, UI_WIDTH+1, MAIN_GH-y}); {
+	ui.container("Dijkstra", {0, y, UI_WIDTH, MAIN_GH-y}); {
 		y = 2
 		if ui.checkbox({1, y}, "Heat Map", &debug_draw_heat_map).value_changed {
 			should_redraw = true

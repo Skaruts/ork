@@ -7,8 +7,8 @@ import ork "../"  // Ork itself
 MAIN_GW :: 80  // main console grid width/height
 MAIN_GH :: 45
 
-UI_WIDTH :: 18
-GW :: MAIN_GW - UI_WIDTH-1   // grid dimensions used by the examples
+UI_WIDTH :: 19
+GW :: MAIN_GW - (UI_WIDTH)    // grid dimensions used by the examples
 GH :: MAIN_GH
 
 LINE_H :: ork.Index(196)  // Assuming cp437 is being used.

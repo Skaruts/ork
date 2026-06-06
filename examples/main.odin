@@ -45,6 +45,9 @@ main :: proc() {
 
 
 init :: proc() {
+	ork.print(GW, GH
+
+		)
 	// By default the exit key is Escape, but the examples need it
 	ork.set_exit_key(.Null)
 
@@ -86,7 +89,7 @@ init :: proc() {
 
 	// You can set the position of a console. This will move it by steps
 	// of its own cell size on the screen.
-	ex_console.x = UI_WIDTH+1
+	ex_console.x = UI_WIDTH
 
 	// The UI must be initialized, and provided with a console
 	ui.init(ui_console)
@@ -184,14 +187,14 @@ tick_menu :: proc() {
 		}
 	}
 
-	ui.container("Examples", {0, 0, UI_WIDTH+1, 12}); {
+	ui.container("Examples", {0, 0, UI_WIDTH, 12}); {
 		ui.text({1, 1}, "(Enter/Escape)", UI_TEXT_HOTKEYS)
 		ui_list(ui.next_y(2), 12, curr_example, keys, in_menu)
 	}
 	ui.end_container()
 
 	nr := ui.next_row()
-	ui.container("Font", {nr.x, nr.y, UI_WIDTH+1, 6}); {
+	ui.container("Font", {nr.x, nr.y, UI_WIDTH, 6}); {
 		ui.text({1, 1}, "(pg_up/dn ,/.)", UI_TEXT_HOTKEYS)
 		ui.text({2, 3}, fonts[curr_font].name)
 	}

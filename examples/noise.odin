@@ -36,7 +36,7 @@ noise_example_on_switch_font :: proc() {
 	// independently from whatever font is being used
 	cw, ch := ork.get_cell_size(ex_console)
 	ork.set_cell_size(noise_con, cw/con_scale, ch/con_scale)
-	noise_con.x = (UI_WIDTH+1)*con_scale
+	noise_con.x = (UI_WIDTH)*con_scale
 }
 
 noise_example_init :: proc() {
@@ -73,7 +73,7 @@ _generate_noise :: proc() {
 @(private="file") _draw_ui :: proc() {
 	nr := ui.next_row()
 
-	ui.container("Noise", {nr.x, nr.y, UI_WIDTH+1, MAIN_GH-nr.y}); {
+	ui.container("Noise", {nr.x, nr.y, UI_WIDTH, MAIN_GH-nr.y}); {
 		ui.text({1, 2}, "Params", ork.GREEN4)
 
 		y := ui.next_y(2)

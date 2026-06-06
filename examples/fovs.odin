@@ -24,7 +24,7 @@ import "../libs/ui"
 @(private="file") _draw_ui :: proc() {
 	y := ui.next_y()
 
-	ui.container("FOV", {0, y, UI_WIDTH+1, MAIN_GH-y}); {
+	ui.container("FOV", {0, y, UI_WIDTH, MAIN_GH-y}); {
 		y = 2
 		ui.text({1, y}, "FOVs", ork.GREEN4)
 		ui.text({ui.next_x()+1, y}, "(home/end)", UI_TEXT_HOTKEYS)
