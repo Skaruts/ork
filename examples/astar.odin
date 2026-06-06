@@ -13,10 +13,10 @@ import ork "../"  // Ork itself
 @(private="file") player := Entity { {}, '@', ork.AMBER7, ork.BLACK }
 @(private="file") enemy  := Entity { {}, 'E', ork.BLUE7,  ork.BLACK }
 
+debug_draw_search_sets := false
+
 
 draw_astar_path :: proc() {
-	debug_draw_search_sets := true
-
 	path := ork.astar_compute_path(astar, player.pos, enemy.pos)
 
 	if len(path) == 0 do return
@@ -84,6 +84,10 @@ astar_example_update :: proc() {
 		init_map(GW, GH, &gmap, &player)
 		init_enemy(&enemy, &gmap)
 		should_redraw = true
+	}
+
+	if ork.key_pressed({.N1}) {
+		debug_draw_search_sets = !debug_draw_search_sets
 	}
 
 	if !player_moved && !should_redraw do return
