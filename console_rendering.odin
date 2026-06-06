@@ -90,7 +90,7 @@ _console_render_shader :: proc(c:^Console, rend: ^RenderingData) {
 		rl.SetShaderValueTexture(rend.shader, _shader_loc(rend.shader, "fg_tex"),  rend.fg_tex)
 		rl.SetShaderValueTexture(rend.shader, _shader_loc(rend.shader, "chr_tex"), rend.char_tex)
 
-		rl.DrawTexture(rend.shader_tex, i32(c.x), i32(c.y), rl.WHITE)
+		rl.DrawTexture(rend.shader_tex, 0, 0, rl.WHITE)
 	}
 	rl.EndShaderMode()
 
