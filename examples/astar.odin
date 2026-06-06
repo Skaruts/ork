@@ -106,7 +106,6 @@ astar_example_update :: proc() {
 
 astar_example_render :: proc() {
 	ork.render(ex_console)
-	// ork.set_window_title(fmt.tprintf("%s - %d fps", title, ork.get_fps_smoothed()))
 }
 
 astar_example_quit :: proc() {

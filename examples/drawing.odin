@@ -43,8 +43,6 @@ drawing_example_update :: proc() {
 		text := fmt.tprintf("sèxÿ utf-8 téxt (cp437) wîth ascii tiles %r%r%r", tile1, tile2, tile3)
 		ork.draw_text(ex_console, x, y+30, text, ork.Color{0, 255, 0, 255})
 	}
-
-	ork.set_window_title(fmt.tprintf("%s - %d fps", title, ork.get_fps_smoothed()))
 }
 
 
