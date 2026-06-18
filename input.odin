@@ -10,7 +10,7 @@ import rl "vendor:raylib"
 
 FIRST_REPEAT_COOLDOWN  :: 0.28 // 0.25
 SECOND_REPEAT_COOLDOWN :: 0.08 // 0.05
-
+TAP_COOLDOWN           :: 0.25
 
 // NOTE: I override all of these just so they conform to this enum style (not full caps)
 Keyboard_Key :: enum {
@@ -174,17 +174,21 @@ EventType :: union {
 
 
 @private _EventState :: struct {
-	time : time.Duration,
-	down : bool,
+	time    : time.Duration,
+	presses : int,
+	down    : bool,
 }
 
 @private _EventStates :: distinct map[EventType]_EventState
+@private _PrevEventStates :: distinct map[EventType]_EventState
 
-
-@private key_states     : _EventStates
-@private mouse_states   : _EventStates
-@private gamepad_states : _EventStates
-// @private gamepad_axis_events  : map[InputEvent]_EventState     // TODO maybe
+@private prev_key_events     : _PrevEventStates
+@private prev_mouse_events   : _PrevEventStates
+@private prev_gamepad_events : _PrevEventStates
+@private key_states      : _EventStates
+@private mouse_states    : _EventStates
+@private gamepad_states  : _EventStates
+// @private gamepad_axis_events : map[InputEvent]_EventState     // TODO maybe
 
 @private repeat_timer    : f64
 @private repeat_cooldown : f64 = FIRST_REPEAT_COOLDOWN
@@ -221,6 +225,11 @@ key_repeat :: proc(keys: []Keyboard_Key) -> bool {
 		if _event_repeat(key_states, key) do return true
 	}
 	return false
+}
+
+// Test if a key was tapped an amount of times
+key_tapped :: proc(times: int, key: Keyboard_Key) -> bool {
+	return _event_pressed(key_states, key) && key_states[key].presses == times
 }
 
 
@@ -261,6 +270,13 @@ mouse_repeat :: proc(buttons: []Mouse_Button) -> bool {
 	return false
 }
 
+// Test if a button was tapped an amount of times
+mouse_tapped :: proc(times: int, btn: Mouse_Button) -> bool {
+	return _event_pressed(mouse_states, btn) && mouse_states[btn].presses == times
+}
+
+
+
 // TODO: gamepad
 
 
@@ -270,12 +286,31 @@ mouse_repeat :: proc(buttons: []Mouse_Button) -> bool {
 	return len(key_states) + len(mouse_states) + len(gamepad_states)
 }
 
-@private _update_event_states :: proc(ev_states : ^_EventStates, dt: time.Duration) {
+@private _update_event_states :: proc(ev_states : ^_EventStates, prev_states: ^_PrevEventStates, dt: time.Duration) {
 	for key, &event in ev_states {
-		if !event.down do delete_key(ev_states, key)
-		else           do event.time += dt
+		if !event.down {
+			event.time = 0
+			prev_states[key] = event
+			delete_key(ev_states, key)
+		} else {
+			event.time += dt
+		}
 	}
 }
+
+
+@private update_prev_events :: proc(events : ^_PrevEventStates, dt: time.Duration) {
+	for ev in events {
+		if ev != Mouse_Button.Wheel_Up && ev != Mouse_Button.Wheel_Down {
+			state := &events[ev]
+			state.time += dt
+			if time.duration_seconds(state.time) >= TAP_COOLDOWN {
+				delete_key(events, ev)
+			}
+		}
+	}
+}
+
 
 @private _input_begin_frame :: proc(dt: time.Duration) {
 	if _total_event_count() > 0 {
@@ -285,15 +320,19 @@ mouse_repeat :: proc(buttons: []Mouse_Button) -> bool {
 		}
 	}
 
+	update_prev_events(&prev_key_events, dt)
+	update_prev_events(&prev_mouse_events, dt)
+	update_prev_events(&prev_gamepad_events, dt)
+
 	for event in mouse_states {
 		if event == Mouse_Button.Wheel_Up || event == Mouse_Button.Wheel_Down {
 			delete_key(&mouse_states, event)
 		}
 	}
 
-	_update_event_states(&key_states, dt)
-	_update_event_states(&mouse_states, dt)
-	_update_event_states(&gamepad_states, dt)
+	_update_event_states(&key_states, &prev_key_events, dt)
+	_update_event_states(&mouse_states, &prev_mouse_events, dt)
+	_update_event_states(&gamepad_states, &prev_gamepad_events, dt)
 
 
 	for k in rl.KeyboardKey {
@@ -317,8 +356,6 @@ mouse_repeat :: proc(buttons: []Mouse_Button) -> bool {
 	 	else if mw > 0 do _add_mouse_event(Mouse_Button.Wheel_Up, true)
 	}
 
-
-
 	if _total_event_count() > 0 {
 		repeat_timer -= time.duration_seconds(dt)
 		if repeat_timer <= 0 do repeat_timer = 0
@@ -336,22 +373,38 @@ mouse_repeat :: proc(buttons: []Mouse_Button) -> bool {
 	delete(key_states)
 	delete(mouse_states)
 	delete(gamepad_states)
+	delete(prev_key_events)
+	delete(prev_mouse_events)
+	delete(prev_gamepad_events)
 }
 
 
 @private _add_key_event :: proc(key: Keyboard_Key, is_down: bool) {
 	if key not_in key_states {
-		key_states[key] = _EventState { down = is_down }
+		key_states[key] = _EventState { down = is_down, presses = 1 }
+		state := &key_states[key]
+
+		if key in prev_key_events {
+			state.presses = prev_key_events[key].presses + 1
+			delete_key(&prev_key_events, key)
+		}
 	} else {
 		(&key_states[key]).down = is_down
 	}
 }
 
+
 @private _add_mouse_event :: proc(button: Mouse_Button, is_down: bool) {
 	button := Mouse_Button(button)
 
 	if button not_in mouse_states {
-		mouse_states[button] = _EventState { down = is_down }
+		mouse_states[button] = _EventState { down = is_down, presses = 1 }
+		state := &mouse_states[button]
+
+		if button in prev_mouse_events {
+			state.presses = prev_mouse_events[button].presses + 1
+			delete_key(&prev_mouse_events, button)
+		}
 	} else {
 		(&mouse_states[button]).down = is_down
 	}
