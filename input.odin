@@ -595,11 +595,6 @@ add_binds_mod :: proc(name: string, binds: []EventBind) {
 @private _are_mods_ok :: proc(b: EventBind) -> bool {
 	if _, ok := b.event.(Gamepad_Button); ok do return true
 
-	#partial switch event in b.event {
-		case Keyboard_Key: if b.mods == {} do return true
-		case Mouse_Button: if b.mods == {} do return true
-	}
-
 	control_ok := _check_mod(b, .Left_Control, .Right_Control, .Left_Control, .Right_Control)
 	shift_ok   := _check_mod(b, .Left_Shift,   .Right_Shift,   .Left_Shift,   .Right_Shift)
 	alt_ok     := _check_mod(b, .Left_Alt,     .Right_Alt,     .Left_Alt,     .Right_Alt)
