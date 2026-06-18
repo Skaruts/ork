@@ -10,13 +10,13 @@ import sys
 # TODO
 #    clean up command
 
-VERSION  = 6
+VERSION  = 7
 
 CWD       = os.getcwd()
 CODE_PATH = "./examples"
-OUT_DIR   = f"./examples/bin"
+OUT_DIR   = "./examples/bin"
 EXE_NAME  = "ork_examples"
-DEBUGGER  = "remedybg"
+DEBUGGER  = "raddbg"
 
 MICROARC_ARG = "-microarch:x86-64"  # for old CPUs
 
@@ -53,7 +53,7 @@ def run_executable():
 		subprocess.run( exe_path, shell=True, cwd=OUT_DIR )
 
 
-def compile(release:bool, run_app: bool):
+def compile(release:bool, run_app: bool, debug: bool):
 	echo("compiling (debug)" if not release else "compiling (release)")
 	comp_str = BUILD_STR_RELEASE if release else BUILD_STR_DEBUG
 	if release and DISABLE_CONSOLE:
@@ -61,15 +61,14 @@ def compile(release:bool, run_app: bool):
 	ret = subprocess.run(comp_str , shell=True, cwd=CWD, capture_output=False)
 	if ret.returncode == 0:
 		if not NO_ICON: embed_icon()
-		if run_app: run_executable()
+		if run_app and not debug: run_executable()
+		if run_app and debug: run_debugger()
 
 
 def run_debugger():
-	echo("running {DEBUGGER}")
-	proc = subprocess.Popen([DEBUGGER], shell=True,
-		   stdin=None, stdout=None, stderr=None, close_fds=True)
-
-
+	print(f"running {DEBUGGER}")
+	proc = subprocess.Popen([DEBUGGER, f"{EXE_NAME}"], shell=True,
+        stdin=None, stdout=None, stderr=None, close_fds=True, cwd=OUT_DIR)
 
 
 def embed_icon():
@@ -102,10 +101,10 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	if   args.clean:         clean_up()
-	elif args.debug:         compile(False, True)
-	elif args.build_debug:   compile(False, False)
-	elif args.release:       compile(True,  True)
-	elif args.build_release: compile(True,  False)
+	elif args.debug:         compile(False, True,  args.debugger)
+	elif args.build_debug:   compile(False, False, args.debugger)
+	elif args.release:       compile(True,  True,  args.debugger)
+	elif args.build_release: compile(True,  False, args.debugger)
 	elif args.debugger:      run_debugger()
 	elif args.icon:          embed_icon()
 	elif args.print:         print_command()
