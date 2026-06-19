@@ -324,11 +324,8 @@ mouse_tapped :: proc(times: int, btn: Mouse_Button) -> bool {
 	update_prev_events(&prev_mouse_events, dt)
 	update_prev_events(&prev_gamepad_events, dt)
 
-	for event in mouse_states {
-		if event == Mouse_Button.Wheel_Up || event == Mouse_Button.Wheel_Down {
-			delete_key(&mouse_states, event)
-		}
-	}
+	if .Wheel_Up   in mouse_states do delete_key(&mouse_states, Mouse_Button.Wheel_Up)
+	if .Wheel_Down in mouse_states do delete_key(&mouse_states, Mouse_Button.Wheel_Down)
 
 	_update_event_states(&key_states, &prev_key_events, dt)
 	_update_event_states(&mouse_states, &prev_mouse_events, dt)
@@ -401,7 +398,7 @@ mouse_tapped :: proc(times: int, btn: Mouse_Button) -> bool {
 		mouse_states[button] = _EventState { down = is_down, presses = 1 }
 		state := &mouse_states[button]
 
-		if button in prev_mouse_events {
+		if button in prev_mouse_events && button != .Wheel_Up && button != .Wheel_Down {
 			state.presses = prev_mouse_events[button].presses + 1
 			delete_key(&prev_mouse_events, button)
 		}
@@ -621,7 +618,11 @@ add_binds_mod :: proc(name: string, binds: []EventBind) {
 		is_released: bool
 		switch event in bind.event {
 			case Keyboard_Key:   is_released = key_released({event})
-			case Mouse_Button:   is_released = mouse_released({event})
+			case Mouse_Button: {
+				if      event == .Wheel_Up   do is_released = !mouse_pressed({.Wheel_Up})
+				else if event == .Wheel_Down do is_released = !mouse_pressed({.Wheel_Down})
+				else                         do is_released = mouse_released({event})
+			}
 			case Gamepad_Button:
 		}
 
