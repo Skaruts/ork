@@ -553,8 +553,8 @@ add_binds_mod :: proc(name: string, binds: []EventBind) {
 	}
 
 	for name, &action in actions {
+		_check_action_released(&action) // check this one first to prevent mouse wheel conflicts
 		_check_action_pressed(&action)
-		_check_action_released(&action)
 	}
 
 	if len(actions_pressed) > 0 {
